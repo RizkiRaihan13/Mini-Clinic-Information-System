@@ -62,7 +62,7 @@ mini_clinic_information/
 │   │   └── seedDb.js             # Script Seeding Data Awal
 │   ├── .env                      # File konfigurasi backend
 │   ├── .env.example              # Template env backend
-│   ├── index.js                  # Entry Point Server Express (Port 5000)
+│   ├── index.js                  # Entry Point Server Express (Port 5001)
 │   └── package.json
 ├── frontend/
 │   ├── src/
@@ -100,7 +100,7 @@ mini_clinic_information/
 
 ### File `backend/.env`
 ```env
-PORT=5000
+PORT=5001
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
@@ -111,7 +111,7 @@ JWT_SECRET=super_secret_jwt_key_mini_clinic_2026
 
 ### File `frontend/.env`
 ```env
-VITE_API_BASE_URL=http://localhost:5000/api
+VITE_API_BASE_URL=http://localhost:5001/api
 ```
 
 ---
@@ -130,14 +130,6 @@ npm install
 npm run db:init
 npm run db:seed
 ```
-*Script ini akan otomatis membuat database `mini_clinic_db`, membuat seluruh tabel relasi, index, dan memasukkan data akun demo (Admin, Dokter, Petugas).*
-
-### 3. Migrasi Manual via SQL Dump File (Opsi 2)
-Jika ingin mengimpor secara manual melalui `psql` atau PgAdmin:
-```bash
-psql -U postgres -d postgres -c "CREATE DATABASE mini_clinic_db;"
-psql -U postgres -d mini_clinic_db -f database.sql
-```
 
 ---
 
@@ -148,25 +140,12 @@ psql -U postgres -d mini_clinic_db -f database.sql
 cd backend
 npm start
 ```
-*Backend API akan berjalan di `http://localhost:5000` (Health Check: `http://localhost:5000/health`)*
+*Backend API akan berjalan di `http://localhost:5001` (Health Check: `http://localhost:5001/health`)*
 
 ### 2. Menjalankan Frontend React (Vite)
 Buka terminal baru:
 ```bash
 cd frontend
-npm install
 npm run dev
 ```
-*Frontend akan berjalan di `http://localhost:3000` (atau port yang ditunjukkan di terminal).*
-
----
-
-## 📬 Postman Collection Testing
-Impor file `postman_collection.json` ke dalam aplikasi Postman. Pre-configured requests telah disediakan untuk seluruh REST API endpoints:
-1. `POST /login` & `POST /logout`
-2. `GET /patients`, `POST /patients`, `PUT /patients/:id`, `DELETE /patients/:id`
-3. `GET /registrations`, `POST /registrations`, `PUT /registrations/:id`
-4. `GET /queues`, `POST /queues`, `PUT /queues/:id/call`, `PUT /queues/:id/status`
-5. `POST /medical-records`, `GET /medical-records/:patientId`
-6. `POST /prescriptions`, `GET /prescriptions/:id`
-7. `GET /dashboard`
+*Frontend akan berjalan di `http://localhost:3000`.*

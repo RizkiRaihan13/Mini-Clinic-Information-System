@@ -7,7 +7,7 @@ const apiRouter = require('./routes/api');
 const { sendError } = require('./middleware/responseHandler');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middlewares
 app.use(helmet());
