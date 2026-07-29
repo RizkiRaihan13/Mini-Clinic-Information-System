@@ -1,0 +1,387 @@
+{
+  "info": {
+    "_postman_id": "b3e90457-1111-4a02-8888-mini-clinic-api",
+    "name": "Mini Clinic Information System API",
+    "description": "Postman collection for testing REST API endpoints of Mini Clinic Information System.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login (Admin / Dokter / Petugas)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["login"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["logout"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Patient Master Data",
+      "item": [
+        {
+          "name": "Get Patients List (Search & Pagination)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patients?page=1&limit=10&search=",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Patient by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patients/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create New Patient",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nik\": \"3201019909990009\",\n  \"name\": \"Siti Aminah\",\n  \"gender\": \"Perempuan\",\n  \"birth_date\": \"1999-09-09\",\n  \"phone\": \"081299881122\",\n  \"address\": \"Jl. Diponegoro No. 8, Jakarta\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/patients",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients"]
+            }
+          }
+        },
+        {
+          "name": "Update Patient",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nik\": \"3201019909990009\",\n  \"name\": \"Siti Aminah, S.Pd\",\n  \"gender\": \"Perempuan\",\n  \"birth_date\": \"1999-09-09\",\n  \"phone\": \"081299881122\",\n  \"address\": \"Jl. Diponegoro No. 8, Jakarta Pusat\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/patients/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Patient",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/patients/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["patients", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Patient Registration",
+      "item": [
+        {
+          "name": "Get Registrations List",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/registrations",
+              "host": ["{{baseUrl}}"],
+              "path": ["registrations"]
+            }
+          }
+        },
+        {
+          "name": "Create Registration (Auto Queue)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patient_id\": 1,\n  \"doctor_id\": 1,\n  \"poli\": \"Poli Umum\",\n  \"visit_date\": \"2026-07-29\",\n  \"payment_type\": \"BPJS\",\n  \"initial_complaint\": \"Pusing dan demam 2 hari\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/registrations",
+              "host": ["{{baseUrl}}"],
+              "path": ["registrations"]
+            }
+          }
+        },
+        {
+          "name": "Update Registration",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Check In\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/registrations/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["registrations", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Queue Management",
+      "item": [
+        {
+          "name": "Get Queues List",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/queues",
+              "host": ["{{baseUrl}}"],
+              "path": ["queues"]
+            }
+          }
+        },
+        {
+          "name": "Create Queue Entry",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registration_id\": 1,\n  \"queue_number\": \"A003\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/queues",
+              "host": ["{{baseUrl}}"],
+              "path": ["queues"]
+            }
+          }
+        },
+        {
+          "name": "Call Queue",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/queues/1/call",
+              "host": ["{{baseUrl}}"],
+              "path": ["queues", "1", "call"]
+            }
+          }
+        },
+        {
+          "name": "Update Queue Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Dalam Pemeriksaan\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/queues/1/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["queues", "1", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Medical Records (SOAP)",
+      "item": [
+        {
+          "name": "Create Medical Record (SOAP + Procedures + Prescription)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registration_id\": 1,\n  \"patient_id\": 1,\n  \"doctor_id\": 1,\n  \"subjective\": \"Demam 3 hari, sakit kepala, mual\",\n  \"bp\": \"120/80\",\n  \"temp\": 37.8,\n  \"weight\": 65,\n  \"height\": 170,\n  \"assessment\": \"Febris ec susp ISPA\",\n  \"plan\": \"Istirahat cukup, kompres hangat, perbanyak minum air putih\",\n  \"procedures\": [\n    {\n      \"procedure_name\": \"Pemeriksaan Fisik Generalis\",\n      \"cost\": 50000\n    }\n  ],\n  \"prescriptions\": [\n    {\n      \"medicine_name\": \"Paracetamol 500mg\",\n      \"dosage\": \"500mg\",\n      \"frequency\": \"3x1 sesudah makan\",\n      \"quantity\": 10\n    },\n    {\n      \"medicine_name\": \"Amoxicillin 500mg\",\n      \"dosage\": \"500mg\",\n      \"frequency\": \"3x1 habiskann\",\n      \"quantity\": 15\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/medical-records",
+              "host": ["{{baseUrl}}"],
+              "path": ["medical-records"]
+            }
+          }
+        },
+        {
+          "name": "Get Patient Medical History",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/medical-records/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["medical-records", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Prescription",
+      "item": [
+        {
+          "name": "Create Prescription Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medical_record_id\": 1,\n  \"medicine_name\": \"Vitamin C 500mg\",\n  \"dosage\": \"500mg\",\n  \"frequency\": \"1x1 sesudah makan\",\n  \"quantity\": 10,\n  \"instructions\": \"Diminum pagi hari\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prescriptions",
+              "host": ["{{baseUrl}}"],
+              "path": ["prescriptions"]
+            }
+          }
+        },
+        {
+          "name": "Get Prescription by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/prescriptions/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["prescriptions", "1"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

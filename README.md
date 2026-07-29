@@ -1,0 +1,172 @@
+# Mini Clinic Information System 🏥
+
+Aplikasi Web Terintegrasi Administrasi dan Pelayanan Pasien Klinik Pratama (Take-Home Test Technical Assignment Programmer).
+
+---
+
+## 📌 Deskripsi Singkat
+Mini Clinic Information System adalah aplikasi berbasis web yang mencakup seluruh alur pelayanan klinik, meliputi:
+1. **Autentikasi & Otorisasi RBAC (JWT)** untuk 3 Role: `Administrator`, `Dokter`, dan `Petugas Pendaftaran`.
+2. **Master Data Pasien**: Pengelolaan pasien dengan Auto-generate Nomor Rekam Medis (`RM-YYYYMMDD-XXXX`), keunikan NIK (16 digit), Pencarian, dan Pagination.
+3. **Modul Pendaftaran Pasien**: Pendaftaran kunjungan pasien ke Poli & Dokter, pilihan Jenis Pembayaran, serta auto-generate nomor antrean (`A001`, `A002`, dst).
+4. **Modul Antrean Pasien**: Live monitor antrean, update status, dan panggilan antrean dengan sintesis suara otomatis (Web Speech API).
+5. **Modul Pemeriksaan Dokter (SOAP)**: Catatan medis metode Subjective, Objective (Vital Signs), Assessment, Plan, Input Tindakan Medis, Resep Obat, dan Riwayat Rekam Medis Pasien.
+6. **Dashboard Analytics**: Visualisasi statistik total pasien, pasien hari ini, antrean hari ini, pasien menunggu, dan selesai dilayani.
+
+---
+
+## 🛠️ Teknologi Yang Digunakan
+
+| Komponen | Teknologi |
+| :--- | :--- |
+| **Frontend** | React.js (Vite), React Router v6, Tailwind CSS, Lucide Icons, Axios |
+| **Backend** | Node.js (Express.js), JWT, BcryptJS, Express Validator |
+| **Database** | PostgreSQL |
+| **Authentication** | JSON Web Token (JWT) |
+| **Version Control** | Git |
+
+---
+
+## 🔑 Akun Login Pengujian (Default Seed Credentials)
+
+| Role | Username | Password | Hak Akses Utama |
+| :--- | :--- | :--- | :--- |
+| **Administrator** | `admin` | `admin123` | Akses penuh ke seluruh fitur & sistem |
+| **Dokter** | `dokter` | `dokter123` | Antrean, Pemeriksaan SOAP, Resep, Riwayat Medis, Dashboard |
+| **Petugas Pendaftaran** | `petugas` | `petugas123` | Master Data Pasien, Pendaftaran Pasien, Antrean, Dashboard |
+
+---
+
+## 📁 Struktur Project
+
+```
+mini_clinic_information/
+├── backend/
+│   ├── config/
+│   │   └── db.js                 # Koneksi PostgreSQL pool
+│   ├── controllers/
+│   │   ├── authController.js     # Login & Logout
+│   │   ├── patientController.js  # CRUD, Search, Pagination Pasien
+│   │   ├── registrationController.js # Pendaftaran Kunjungan
+│   │   ├── queueController.js    # Manajemen Antrean Pasien
+│   │   ├── medicalRecordController.js # Pemeriksaan Dokter SOAP
+│   │   ├── prescriptionController.js  # Resep Obat
+│   │   └── dashboardController.js     # Statistik Dashboard
+│   ├── middleware/
+│   │   ├── authMiddleware.js     # Verify JWT & RBAC Role check
+│   │   └── responseHandler.js    # Standard JSON Response Wrapper
+│   ├── routes/
+│   │   └── api.js                # Definisi Seluruh Endpoints REST API
+│   ├── scripts/
+│   │   ├── initDb.js             # Script Inisialisasi Database & Tabel
+│   │   └── seedDb.js             # Script Seeding Data Awal
+│   ├── .env                      # File konfigurasi backend
+│   ├── .env.example              # Template env backend
+│   ├── index.js                  # Entry Point Server Express (Port 5000)
+│   └── package.json
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   └── Layout.jsx        # Sidebar navigation & Topbar
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx   # State JWT auth & RBAC permissions
+│   │   ├── pages/
+│   │   │   ├── Login.jsx         # Halaman Login
+│   │   │   ├── Dashboard.jsx     # Halaman Dashboard Metric Cards
+│   │   │   ├── Patients.jsx      # Halaman Master Data Pasien
+│   │   │   ├── Registrations.jsx # Halaman Pendaftaran Kunjungan
+│   │   │   ├── Queue.jsx        # Halaman Live Queue & Voice Caller
+│   │   │   └── MedicalRecords.jsx# Halaman Pemeriksaan Dokter SOAP
+│   │   ├── services/
+│   │   │   └── api.js            # Axios client with Auth Interceptor
+│   │   ├── App.jsx               # Routing & Protected Routes
+│   │   ├── index.css             # Glassmorphism & Custom Tailwind CSS
+│   │   └── main.jsx
+│   ├── .env                      # File konfigurasi frontend
+│   ├── .env.example              # Template env frontend
+│   ├── index.html
+│   ├── package.json
+│   └── vite.config.js
+├── database.sql                  # File Standalone Dump SQL Database PostgreSQL
+├── ERD.md                        # Entity Relationship Diagram & Spesifikasi Tabel
+├── postman_collection.json       # Collection Postman REST API lengkap
+├── .env.example                  # Template env root
+└── README.md                     # Dokumentasi panduan proyek
+```
+
+---
+
+## ⚙️ Konfigurasi File `.env`
+
+### File `backend/.env`
+```env
+PORT=5000
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=Rizki130902
+DB_NAME=mini_clinic_db
+JWT_SECRET=super_secret_jwt_key_mini_clinic_2026
+```
+
+### File `frontend/.env`
+```env
+VITE_API_BASE_URL=http://localhost:5000/api
+```
+
+---
+
+## 🚀 Cara Instalasi & Migrasi Database
+
+### 1. Prasyarat System
+- Node.js (v18+)
+- PostgreSQL Database Server (Port 5432)
+
+### 2. Migrasi & Seed Database Automatic (Opsi 1 - Recommended)
+Buka terminal pada direktori `backend` dan jalankan script migrasi otomatis:
+```bash
+cd backend
+npm install
+npm run db:init
+npm run db:seed
+```
+*Script ini akan otomatis membuat database `mini_clinic_db`, membuat seluruh tabel relasi, index, dan memasukkan data akun demo (Admin, Dokter, Petugas).*
+
+### 3. Migrasi Manual via SQL Dump File (Opsi 2)
+Jika ingin mengimpor secara manual melalui `psql` atau PgAdmin:
+```bash
+psql -U postgres -d postgres -c "CREATE DATABASE mini_clinic_db;"
+psql -U postgres -d mini_clinic_db -f database.sql
+```
+
+---
+
+## 💻 Cara Menjalankan Aplikasi
+
+### 1. Menjalankan Backend API
+```bash
+cd backend
+npm start
+```
+*Backend API akan berjalan di `http://localhost:5000` (Health Check: `http://localhost:5000/health`)*
+
+### 2. Menjalankan Frontend React (Vite)
+Buka terminal baru:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+*Frontend akan berjalan di `http://localhost:3000` (atau port yang ditunjukkan di terminal).*
+
+---
+
+## 📬 Postman Collection Testing
+Impor file `postman_collection.json` ke dalam aplikasi Postman. Pre-configured requests telah disediakan untuk seluruh REST API endpoints:
+1. `POST /login` & `POST /logout`
+2. `GET /patients`, `POST /patients`, `PUT /patients/:id`, `DELETE /patients/:id`
+3. `GET /registrations`, `POST /registrations`, `PUT /registrations/:id`
+4. `GET /queues`, `POST /queues`, `PUT /queues/:id/call`, `PUT /queues/:id/status`
+5. `POST /medical-records`, `GET /medical-records/:patientId`
+6. `POST /prescriptions`, `GET /prescriptions/:id`
+7. `GET /dashboard`
