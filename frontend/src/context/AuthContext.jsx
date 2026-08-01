@@ -25,7 +25,12 @@ export const AuthProvider = ({ children }) => {
       }
       return { success: false, message: res.data.message };
     } catch (err) {
-      const errorMsg = err.response?.data?.message || 'Login gagal. Periksa username dan password Anda.';
+      let errorMsg = 'Login gagal. Periksa username dan password Anda.';
+      if (err.response) {
+        errorMsg = err.response.data?.message || errorMsg;
+      } else if (err.request) {
+        errorMsg = 'Gagal terhubung ke server backend. Pastikan server backend (npm run dev pada folder backend) sudah dinyalakan.';
+      }
       const errors = err.response?.data?.errors || {};
       return { success: false, message: errorMsg, errors };
     } finally {

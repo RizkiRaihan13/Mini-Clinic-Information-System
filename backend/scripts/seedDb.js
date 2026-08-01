@@ -14,7 +14,7 @@ async function seedDb() {
     const userAdminRes = await pool.query(
       `INSERT INTO users (username, password_hash, full_name, role)
        VALUES ($1, $2, $3, $4)
-       ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name
+       ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name, password_hash = EXCLUDED.password_hash
        RETURNING id`,
       ['admin', adminHash, 'Administrator Utama', 'Administrator']
     );
@@ -22,7 +22,7 @@ async function seedDb() {
     const userDoctorRes = await pool.query(
       `INSERT INTO users (username, password_hash, full_name, role)
        VALUES ($1, $2, $3, $4)
-       ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name
+       ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name, password_hash = EXCLUDED.password_hash
        RETURNING id`,
       ['dokter', doctorHash, 'dr. Andi Wijaya, Sp.PD', 'Dokter']
     );
@@ -30,7 +30,7 @@ async function seedDb() {
     const userDoctor2Res = await pool.query(
       `INSERT INTO users (username, password_hash, full_name, role)
        VALUES ($1, $2, $3, $4)
-       ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name
+       ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name, password_hash = EXCLUDED.password_hash
        RETURNING id`,
       ['dokter_anak', doctorHash, 'dr. Siti Rahma, Sp.A', 'Dokter']
     );
@@ -38,7 +38,7 @@ async function seedDb() {
     const userStaffRes = await pool.query(
       `INSERT INTO users (username, password_hash, full_name, role)
        VALUES ($1, $2, $3, $4)
-       ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name
+       ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name, password_hash = EXCLUDED.password_hash
        RETURNING id`,
       ['petugas', staffHash, 'Budi Santoso (Petugas Pendaftaran)', 'Petugas Pendaftaran']
     );
