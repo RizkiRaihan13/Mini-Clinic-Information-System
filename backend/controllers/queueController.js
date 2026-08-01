@@ -37,6 +37,13 @@ const getQueues = async (req, res) => {
 
     const params = [date];
 
+    // Dokter hanya boleh melihat antrean yang memang ditugaskan kepadanya.
+    // Filter ini dibuat di server agar parameter poli dari browser tidak bisa dipalsukan.
+    if (req.user.role === 'Dokter') {
+      params.push(req.user.id);
+      query += ` AND r.doctor_id = (SELECT id FROM doctors WHERE user_id = $${params.length})`;
+    }
+
     if (poli) {
       params.push(poli);
       query += ` AND r.poli = $${params.length}`;
@@ -89,16 +96,19 @@ const callQueue = async (req, res) => {
     const { id } = req.params;
 
     const queueRes = await client.query(
-      `UPDATE queues
+      `UPDATE queues q
        SET status = 'Dipanggil', called_at = CURRENT_TIMESTAMP
-       WHERE id = $1
-       RETURNING *`,
-      [id]
+       FROM registrations r
+       WHERE q.id = $1
+         AND r.id = q.registration_id
+         ${req.user.role === 'Dokter' ? 'AND r.doctor_id = (SELECT id FROM doctors WHERE user_id = $2)' : ''}
+       RETURNING q.*`,
+      req.user.role === 'Dokter' ? [id, req.user.id] : [id]
     );
 
     if (queueRes.rowCount === 0) {
       await client.query('ROLLBACK');
-      return sendError(res, 'Queue item not found', { queue: 'Not found' }, 404);
+      return sendError(res, 'Queue item not found or not assigned to you', { queue: 'Not found or forbidden' }, 404);
     }
 
     const updatedQueue = queueRes.rows[0];
@@ -155,16 +165,19 @@ const updateQueueStatus = async (req, res) => {
     }
 
     const queueRes = await client.query(
-      `UPDATE queues
+      `UPDATE queues q
        SET status = $1
-       WHERE id = $2
-       RETURNING *`,
-      [status, id]
+       FROM registrations r
+       WHERE q.id = $2
+         AND r.id = q.registration_id
+         ${req.user.role === 'Dokter' ? 'AND r.doctor_id = (SELECT id FROM doctors WHERE user_id = $3)' : ''}
+       RETURNING q.*`,
+      req.user.role === 'Dokter' ? [status, id, req.user.id] : [status, id]
     );
 
     if (queueRes.rowCount === 0) {
       await client.query('ROLLBACK');
-      return sendError(res, 'Queue item not found', { queue: 'Not found' }, 404);
+      return sendError(res, 'Queue item not found or not assigned to you', { queue: 'Not found or forbidden' }, 404);
     }
 
     const updatedQueue = queueRes.rows[0];

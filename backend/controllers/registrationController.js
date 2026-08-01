@@ -3,10 +3,11 @@ const { sendSuccess, sendError } = require('../middleware/responseHandler');
 
 // Helper to generate queue number for today
 const generateQueueNumber = async (poli) => {
-  let prefix = 'A';
-  if (poli && poli.toLowerCase().includes('anak')) prefix = 'B';
-  if (poli && poli.toLowerCase().includes('gigi')) prefix = 'C';
-  if (poli && poli.toLowerCase().includes('spesialis')) prefix = 'D';
+  let prefix = 'U';
+  if (poli && poli.toLowerCase().includes('anak')) prefix = 'A';
+  if (poli && poli.toLowerCase().includes('gigi')) prefix = 'G';
+  if (poli && poli.toLowerCase().includes('tht')) prefix = 'T';
+  if (poli && poli.toLowerCase().includes('penyakit dalam')) prefix = 'D';
 
   const todayStr = new Date().toISOString().slice(0, 10);
 
@@ -65,8 +66,14 @@ const getRegistrations = async (req, res) => {
 
     const params = [date];
 
+    // Sama seperti antrean, dokter tidak boleh melihat kunjungan dokter lain.
+    if (req.user.role === 'Dokter') {
+      params.push(req.user.id);
+      query += ` AND r.doctor_id = (SELECT id FROM doctors WHERE user_id = $${params.length})`;
+    }
+
     if (poli) {
-      query += ` AND r.poli = $2`;
+      query += ` AND r.poli = $${params.length + 1}`;
       params.push(poli);
     }
 
@@ -101,6 +108,15 @@ const createRegistration = async (req, res) => {
     }
 
     const regDate = visit_date || new Date().toISOString().slice(0, 10);
+
+    const doctorRes = await client.query(
+      'SELECT id FROM doctors WHERE id = $1 AND poli = $2',
+      [doctor_id, poli]
+    );
+    if (doctorRes.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return sendError(res, 'Dokter harus sesuai dengan poli tujuan', { doctor_id: 'Dokter tidak terdaftar pada poli yang dipilih' }, 400);
+    }
 
     const regResult = await client.query(
       `INSERT INTO registrations (patient_id, doctor_id, poli, visit_date, payment_type, initial_complaint, status)

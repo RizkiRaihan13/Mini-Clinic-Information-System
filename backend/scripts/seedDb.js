@@ -24,7 +24,7 @@ async function seedDb() {
        VALUES ($1, $2, $3, $4)
        ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name, password_hash = EXCLUDED.password_hash
        RETURNING id`,
-      ['dokter', doctorHash, 'dr. Andi Wijaya, Sp.PD', 'Dokter']
+      ['dokter', doctorHash, 'dr. Andi Pratama', 'Dokter']
     );
 
     const userDoctor2Res = await pool.query(
@@ -33,6 +33,30 @@ async function seedDb() {
        ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name, password_hash = EXCLUDED.password_hash
        RETURNING id`,
       ['dokter_anak', doctorHash, 'dr. Siti Rahma, Sp.A', 'Dokter']
+    );
+
+    const userDoctorGigiRes = await pool.query(
+      `INSERT INTO users (username, password_hash, full_name, role)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name, password_hash = EXCLUDED.password_hash
+       RETURNING id`,
+      ['dokter_gigi', doctorHash, 'drg. Maya Kusuma', 'Dokter']
+    );
+
+    const userDoctorThtRes = await pool.query(
+      `INSERT INTO users (username, password_hash, full_name, role)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name, password_hash = EXCLUDED.password_hash
+       RETURNING id`,
+      ['dokter_tht', doctorHash, 'dr. Rendra Putra, Sp.THT-KL', 'Dokter']
+    );
+
+    const userDoctorDalamRes = await pool.query(
+      `INSERT INTO users (username, password_hash, full_name, role)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (username) DO UPDATE SET full_name = EXCLUDED.full_name, password_hash = EXCLUDED.password_hash
+       RETURNING id`,
+      ['dokter_dalam', doctorHash, 'dr. Andi Wijaya, Sp.PD', 'Dokter']
     );
 
     const userStaffRes = await pool.query(
@@ -45,13 +69,16 @@ async function seedDb() {
 
     const doctor1UserId = userDoctorRes.rows[0].id;
     const doctor2UserId = userDoctor2Res.rows[0].id;
+    const doctorGigiUserId = userDoctorGigiRes.rows[0].id;
+    const doctorThtUserId = userDoctorThtRes.rows[0].id;
+    const doctorDalamUserId = userDoctorDalamRes.rows[0].id;
 
     // 2. Insert Doctors
     const doc1Res = await pool.query(
       `INSERT INTO doctors (user_id, name, specialization, poli, phone)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id`,
-      [doctor1UserId, 'dr. Andi Wijaya, Sp.PD', 'Penyakit Dalam', 'Poli Umum', '081234567890']
+      [doctor1UserId, 'dr. Andi Pratama', 'Dokter Umum', 'Poli Umum', '081234567890']
     );
 
     const doc2Res = await pool.query(
@@ -59,6 +86,24 @@ async function seedDb() {
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id`,
       [doctor2UserId, 'dr. Siti Rahma, Sp.A', 'Spesialis Anak', 'Poli Anak', '081987654321']
+    );
+
+    await pool.query(
+      `INSERT INTO doctors (user_id, name, specialization, poli, phone)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [doctorGigiUserId, 'drg. Maya Kusuma', 'Dokter Gigi', 'Poli Gigi', '081234567891']
+    );
+
+    await pool.query(
+      `INSERT INTO doctors (user_id, name, specialization, poli, phone)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [doctorThtUserId, 'dr. Rendra Putra, Sp.THT-KL', 'THT-KL', 'Poli THT', '081234567892']
+    );
+
+    await pool.query(
+      `INSERT INTO doctors (user_id, name, specialization, poli, phone)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [doctorDalamUserId, 'dr. Andi Wijaya, Sp.PD', 'Penyakit Dalam', 'Poli Penyakit Dalam', '081234567893']
     );
 
     const doc1Id = doc1Res.rows[0].id;

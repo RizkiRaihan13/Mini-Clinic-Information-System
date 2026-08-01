@@ -30,12 +30,23 @@ const login = async (req, res) => {
       return sendError(res, 'Invalid username or password', { auth: 'Invalid credentials' }, 401);
     }
 
+    const doctorResult = user.role === 'Dokter'
+      ? await pool.query('SELECT id, poli FROM doctors WHERE user_id = $1', [user.id])
+      : { rows: [] };
+
+    if (user.role === 'Dokter' && doctorResult.rowCount === 0) {
+      return sendError(res, 'Akun dokter belum terhubung ke data dokter', { doctor: 'Doctor profile not found' }, 403);
+    }
+
+    const doctor = doctorResult.rows[0];
     const token = jwt.sign(
       {
         id: user.id,
         username: user.username,
         full_name: user.full_name,
         role: user.role,
+        doctor_id: doctor?.id || null,
+        doctor_poli: doctor?.poli || null,
       },
       process.env.JWT_SECRET || 'super_secret_jwt_key_mini_clinic_2026',
       { expiresIn: '24h' }
@@ -48,6 +59,8 @@ const login = async (req, res) => {
         username: user.username,
         full_name: user.full_name,
         role: user.role,
+        doctor_id: doctor?.id || null,
+        doctor_poli: doctor?.poli || null,
       },
     });
   } catch (error) {

@@ -266,7 +266,7 @@ export default function Patients() {
         ) : patients.length === 0 ? (
           <div className="p-12 text-center text-slate-400">Tidak ada data pasien yang ditemukan.</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto custom-scrollbar">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-900/90 border-b border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 <tr>

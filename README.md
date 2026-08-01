@@ -32,7 +32,11 @@ Mini Clinic Information System adalah aplikasi berbasis web yang mencakup seluru
 | Role | Username | Password | Hak Akses Utama |
 | :--- | :--- | :--- | :--- |
 | **Administrator** | `admin` | `admin123` | Akses penuh ke seluruh fitur & sistem |
-| **Dokter** | `dokter` | `dokter123` | Antrean, Pemeriksaan SOAP, Resep, Riwayat Medis, Dashboard |
+| **Dokter Poli Umum** | `dokter` | `dokter123` | Hanya antrean dan pemeriksaan Poli Umum |
+| **Dokter Anak** | `dokter_anak` | `dokter123` | Hanya antrean dan pemeriksaan Poli Anak |
+| **Dokter Gigi** | `dokter_gigi` | `dokter123` | Hanya antrean dan pemeriksaan Poli Gigi |
+| **Dokter THT** | `dokter_tht` | `dokter123` | Hanya antrean dan pemeriksaan Poli THT |
+| **Dokter Penyakit Dalam** | `dokter_dalam` | `dokter123` | Hanya antrean dan pemeriksaan Poli Penyakit Dalam |
 | **Petugas Pendaftaran** | `petugas` | `petugas123` | Master Data Pasien, Pendaftaran Pasien, Antrean, Dashboard |
 
 ---
@@ -129,6 +133,11 @@ cd backend
 npm install
 npm run db:init
 npm run db:seed
+```
+
+Untuk database yang sudah ada (tanpa menghapus data pasien), jalankan sekali:
+```bash
+npm run db:sync-doctors
 ```
 
 ---

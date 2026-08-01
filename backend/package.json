@@ -7,7 +7,8 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "db:init": "node scripts/initDb.js",
-    "db:seed": "node scripts/seedDb.js"
+    "db:seed": "node scripts/seedDb.js",
+    "db:sync-doctors": "node scripts/syncDoctors.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

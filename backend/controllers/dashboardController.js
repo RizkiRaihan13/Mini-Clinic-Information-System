@@ -7,21 +7,30 @@ const getDashboardMetrics = async (req, res) => {
 
     const totalPatientsRes = await pool.query('SELECT COUNT(*) FROM patients');
     const totalPatientsTodayRes = await pool.query('SELECT COUNT(*) FROM patients WHERE DATE(created_at) = $1', [todayStr]);
+    const doctorFilter = req.user.role === 'Dokter'
+      ? ' AND r.doctor_id = (SELECT id FROM doctors WHERE user_id = $2)'
+      : '';
+    const queueParams = req.user.role === 'Dokter' ? [todayStr, req.user.id] : [todayStr];
     const totalQueuesTodayRes = await pool.query(
-      `SELECT COUNT(*) FROM queues q JOIN registrations r ON q.registration_id = r.id WHERE r.visit_date = $1`,
-      [todayStr]
+      `SELECT COUNT(*) FROM queues q JOIN registrations r ON q.registration_id = r.id WHERE r.visit_date = $1${doctorFilter}`,
+      queueParams
     );
     const waitingPatientsRes = await pool.query(
-      `SELECT COUNT(*) FROM queues q JOIN registrations r ON q.registration_id = r.id WHERE r.visit_date = $1 AND q.status = 'Menunggu'`,
-      [todayStr]
+      `SELECT COUNT(*) FROM queues q JOIN registrations r ON q.registration_id = r.id WHERE r.visit_date = $1 AND q.status = 'Menunggu'${doctorFilter}`,
+      queueParams
     );
     const completedPatientsRes = await pool.query(
-      `SELECT COUNT(*) FROM queues q JOIN registrations r ON q.registration_id = r.id WHERE r.visit_date = $1 AND q.status = 'Selesai'`,
-      [todayStr]
+      `SELECT COUNT(*) FROM queues q JOIN registrations r ON q.registration_id = r.id WHERE r.visit_date = $1 AND q.status = 'Selesai'${doctorFilter}`,
+      queueParams
     );
 
     // Fetch list of doctors and polis for frontend dropdowns
-    const doctorsRes = await pool.query('SELECT id, name, specialization, poli FROM doctors ORDER BY name ASC');
+    const doctorsRes = await pool.query(
+      req.user.role === 'Dokter'
+        ? 'SELECT id, name, specialization, poli FROM doctors WHERE user_id = $1 ORDER BY name ASC'
+        : 'SELECT id, name, specialization, poli FROM doctors ORDER BY name ASC',
+      req.user.role === 'Dokter' ? [req.user.id] : []
+    );
 
     return sendSuccess(res, 'Dashboard metrics retrieved successfully', {
       total_patients: parseInt(totalPatientsRes.rows[0].count, 10),

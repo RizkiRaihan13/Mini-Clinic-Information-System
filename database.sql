@@ -26,7 +26,7 @@ CREATE TABLE users (
 -- 2. Doctors Table
 CREATE TABLE doctors (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    user_id INTEGER UNIQUE REFERENCES users(id) ON DELETE SET NULL,
     name VARCHAR(100) NOT NULL,
     specialization VARCHAR(100) NOT NULL,
     poli VARCHAR(50) NOT NULL,
@@ -123,12 +123,18 @@ INSERT INTO users (username, password_hash, full_name, role) VALUES
 ('admin', '$2a$10$wK1P025dD7iB8G749E5eUOB.vE8u8d9XNfR4p.e7K8E0z7j3M2q9u', 'Administrator Utama', 'Administrator'),
 ('dokter', '$2a$10$tZ2P025dD7iB8G749E5eUOB.vE8u8d9XNfR4p.e7K8E0z7j3M2q9u', 'dr. Andi Wijaya, Sp.PD', 'Dokter'),
 ('dokter_anak', '$2a$10$tZ2P025dD7iB8G749E5eUOB.vE8u8d9XNfR4p.e7K8E0z7j3M2q9u', 'dr. Siti Rahma, Sp.A', 'Dokter'),
+('dokter_gigi', '$2a$10$tZ2P025dD7iB8G749E5eUOB.vE8u8d9XNfR4p.e7K8E0z7j3M2q9u', 'drg. Maya Kusuma', 'Dokter'),
+('dokter_tht', '$2a$10$tZ2P025dD7iB8G749E5eUOB.vE8u8d9XNfR4p.e7K8E0z7j3M2q9u', 'dr. Rendra Putra, Sp.THT-KL', 'Dokter'),
+('dokter_dalam', '$2a$10$tZ2P025dD7iB8G749E5eUOB.vE8u8d9XNfR4p.e7K8E0z7j3M2q9u', 'dr. Andi Wijaya, Sp.PD', 'Dokter'),
 ('petugas', '$2a$10$uX3P025dD7iB8G749E5eUOB.vE8u8d9XNfR4p.e7K8E0z7j3M2q9u', 'Budi Santoso', 'Petugas Pendaftaran');
 
 -- Seed Doctors
 INSERT INTO doctors (user_id, name, specialization, poli, phone) VALUES
-(2, 'dr. Andi Wijaya, Sp.PD', 'Penyakit Dalam', 'Poli Umum', '081234567890'),
-(3, 'dr. Siti Rahma, Sp.A', 'Spesialis Anak', 'Poli Anak', '081987654321');
+(2, 'dr. Andi Pratama', 'Dokter Umum', 'Poli Umum', '081234567890'),
+(3, 'dr. Siti Rahma, Sp.A', 'Spesialis Anak', 'Poli Anak', '081987654321'),
+(4, 'drg. Maya Kusuma', 'Dokter Gigi', 'Poli Gigi', '081234567891'),
+(5, 'dr. Rendra Putra, Sp.THT-KL', 'THT-KL', 'Poli THT', '081234567892'),
+(6, 'dr. Andi Wijaya, Sp.PD', 'Penyakit Dalam', 'Poli Penyakit Dalam', '081234567893');
 
 -- Seed Sample Patients
 INSERT INTO patients (medical_record_number, nik, name, gender, birth_date, phone, address) VALUES

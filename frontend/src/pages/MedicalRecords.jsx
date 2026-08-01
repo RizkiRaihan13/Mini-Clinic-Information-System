@@ -169,7 +169,9 @@ export default function MedicalRecords() {
       const payload = {
         registration_id: selectedQueue.registration_id,
         patient_id: selectedQueue.patient_id,
-        doctor_id: selectedQueue.doctor_id || user.id,
+        // Backend menentukan dokter dari akun login/pendaftaran; field ini hanya
+        // dipertahankan untuk kompatibilitas payload lama.
+        doctor_id: selectedQueue.doctor_id,
         ...soapForm,
         procedures: procedures.filter((p) => p.procedure_name.trim() !== ""),
         prescriptions: prescriptions.filter(
@@ -294,45 +296,58 @@ export default function MedicalRecords() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Queue Selector Sidebar (Left 4 columns) */}
           <div className="lg:col-span-4 space-y-4">
-            <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-4">
-              <h2 className="text-md font-bold text-white flex items-center justify-between border-b border-slate-800 pb-3">
-                <span>Pilih Pasien Antrean Hari Ini</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-indigo-300">
-                  {queues.length} Antrean
+            <div className="glass-panel p-4 sm:p-5 rounded-3xl border border-slate-800 space-y-4">
+              <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="shrink-0 w-9 h-9 rounded-xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center">
+                    <UserCheck className="w-4.5 h-4.5 text-indigo-300" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-bold text-white leading-tight">
+                      Antrean Pasien Hari Ini
+                    </h2>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Pilih pasien untuk mulai pemeriksaan
+                    </p>
+                  </div>
+                </div>
+                <span className="shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-semibold">
+                  {queues.length} pasien
                 </span>
-              </h2>
+              </div>
 
               {queues.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-6">
                   Tidak ada pasien antrean yang menunggu.
                 </p>
               ) : (
-                <div className="space-y-2.5 max-h-[500px] overflow-y-auto custom-scrollbar">
+                <div className="space-y-2.5 max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
                   {queues.map((q) => (
-                    <div
+                    <button
+                      type="button"
                       key={q.id}
                       onClick={() => handleSelectQueue(q)}
-                      className={`p-4 rounded-2xl border cursor-pointer transition-all duration-200 ${
+                      className={`w-full text-left p-3.5 rounded-2xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 ${
                         selectedQueue?.id === q.id
-                          ? "border-indigo-500 bg-indigo-950/40 text-white shadow-lg shadow-indigo-500/10"
-                          : "border-slate-800 bg-slate-900/50 hover:border-slate-700 text-slate-300"
+                          ? "border-indigo-500/70 bg-indigo-950/45 text-white shadow-lg shadow-indigo-500/10"
+                          : "border-slate-800 bg-slate-900/50 hover:border-indigo-500/35 hover:bg-slate-900 text-slate-300"
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono font-extrabold text-indigo-300 text-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono font-extrabold text-indigo-300 text-xs tracking-wide">
                           {q.queue_number}
                         </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-semibold">
+                        <span className="max-w-[58%] truncate text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-semibold">
                           {q.poli}
                         </span>
                       </div>
-                      <p className="font-bold text-sm text-white mt-1">
+                      <p className="font-bold text-sm text-white mt-2 truncate">
                         {q.patient_name}
                       </p>
-                      <p className="text-xs text-slate-400 truncate mt-0.5">
+                      <p className="text-xs text-slate-400 truncate mt-1">
                         Keluhan: {q.initial_complaint}
                       </p>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}

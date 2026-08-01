@@ -21,8 +21,8 @@ export default function Queue() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [callingId, setCallingId] = useState(null);
 
-  const { hasRole } = useAuth();
-  const polis = ['Poli Umum', 'Poli Gigi', 'Poli Anak', 'Poli Penyakit Dalam'];
+  const { hasRole, user } = useAuth();
+  const polis = ['Poli Umum', 'Poli Gigi', 'Poli Anak', 'Poli Penyakit Dalam', 'Poli THT'];
 
   useEffect(() => {
     fetchQueues();
@@ -153,9 +153,10 @@ export default function Queue() {
         <select
           value={selectedPoli}
           onChange={(e) => setSelectedPoli(e.target.value)}
+          disabled={hasRole('Dokter')}
           className="px-3.5 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-200 text-xs focus:border-cyan-500"
         >
-          <option value="">-- Semua Poli --</option>
+          <option value="">{hasRole('Dokter') ? user?.doctor_poli || 'Poli Saya' : '-- Semua Poli --'}</option>
           {polis.map((p) => (
             <option key={p} value={p}>
               {p}

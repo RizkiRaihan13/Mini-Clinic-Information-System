@@ -23,8 +23,6 @@ const createMedicalRecord = async (req, res) => {
 
     const errors = {};
     if (!registration_id) errors.registration_id = 'Registration ID wajib diisi';
-    if (!patient_id) errors.patient_id = 'Patient ID wajib diisi';
-    if (!doctor_id) errors.doctor_id = 'Doctor ID wajib diisi';
     if (!subjective) errors.subjective = 'Keluhan pasien (Subjective) wajib diisi';
     if (!bp) errors.bp = 'Tekanan darah wajib diisi';
     if (!temp) errors.temp = 'Suhu tubuh wajib diisi';
@@ -38,13 +36,30 @@ const createMedicalRecord = async (req, res) => {
       return sendError(res, 'Validation Error', errors, 400);
     }
 
+    // Jangan percaya patient_id/doctor_id dari browser. Pastikan data SOAP selalu
+    // memakai dokter dan pasien dari pendaftaran yang dipilih.
+    const registrationRes = await client.query(
+      `SELECT patient_id, doctor_id
+       FROM registrations
+       WHERE id = $1
+         ${req.user.role === 'Dokter' ? 'AND doctor_id = (SELECT id FROM doctors WHERE user_id = $2)' : ''}`,
+      req.user.role === 'Dokter' ? [registration_id, req.user.id] : [registration_id]
+    );
+
+    if (registrationRes.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return sendError(res, 'Pendaftaran tidak ditemukan atau bukan antrean Anda', { registration: 'Not found or forbidden' }, 403);
+    }
+
+    const registration = registrationRes.rows[0];
+
     // Insert Medical Record SOAP
     const mrRes = await client.query(
       `INSERT INTO medical_records 
         (registration_id, patient_id, doctor_id, subjective, bp, temp, weight, height, assessment, plan)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`,
-      [registration_id, patient_id, doctor_id, subjective, bp, temp, weight, height, assessment, plan]
+      [registration_id, registration.patient_id, registration.doctor_id, subjective, bp, temp, weight, height, assessment, plan]
     );
 
     const medicalRecord = mrRes.rows[0];
@@ -130,8 +145,9 @@ const getMedicalRecordsByPatientId = async (req, res) => {
        JOIN doctors d ON mr.doctor_id = d.id
        JOIN registrations r ON mr.registration_id = r.id
        WHERE mr.patient_id = $1
+       ${req.user.role === 'Dokter' ? 'AND mr.doctor_id = (SELECT id FROM doctors WHERE user_id = $2)' : ''}
        ORDER BY mr.created_at DESC`,
-      [patientId]
+      req.user.role === 'Dokter' ? [patientId, req.user.id] : [patientId]
     );
 
     const medicalRecords = recordsRes.rows;
