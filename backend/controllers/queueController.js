@@ -54,7 +54,8 @@ const getQueues = async (req, res) => {
       query += ` AND q.status = $${params.length}`;
     }
 
-    query += ` ORDER BY q.id ASC`;
+    // Tampilkan antrean yang baru dibuat di posisi paling atas/kiri pada grid frontend.
+    query += ` ORDER BY q.created_at DESC, q.id DESC`;
 
     const result = await pool.query(query, params);
 
