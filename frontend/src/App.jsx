@@ -8,6 +8,8 @@ import Patients from './pages/Patients';
 import Registrations from './pages/Registrations';
 import Queue from './pages/Queue';
 import MedicalRecords from './pages/MedicalRecords';
+import Payments from './pages/Payments';
+import MasterPrices from './pages/MasterPrices';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, token, hasRole } = useAuth();
@@ -67,6 +69,22 @@ export default function App() {
           element={
             <ProtectedRoute allowedRoles={['Administrator', 'Dokter']}>
               <MedicalRecords />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="payments"
+          element={
+            <ProtectedRoute allowedRoles={['Administrator', 'Petugas Pendaftaran']}>
+              <Payments />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="master-prices"
+          element={
+            <ProtectedRoute allowedRoles={['Administrator']}>
+              <MasterPrices />
             </ProtectedRoute>
           }
         />

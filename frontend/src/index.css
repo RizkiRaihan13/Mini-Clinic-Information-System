@@ -39,3 +39,13 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(20, 184, 166, 0.8);
 }
+
+
+/* Cetak kuitansi: hanya tampilkan #invoice-print */
+@media print {
+  body * { visibility: hidden; }
+  #invoice-print, #invoice-print * { visibility: visible; }
+  #invoice-print { position: absolute; left: 0; top: 0; width: 100%; max-height: none !important; background: #fff !important; color: #000 !important; border: none !important; }
+  #invoice-print * { color: #000 !important; border-color: #ccc !important; }
+  .no-print { display: none !important; }
+}

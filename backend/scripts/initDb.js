@@ -1,10 +1,16 @@
 const { Client } = require('pg');
 require('dotenv').config();
+const { paymentSchemaSql } = require('./paymentSchema');
 
 const dbName = process.env.DB_NAME || 'mini_clinic_db';
 
 const schemaSql = `
 -- Drop existing tables if re-initializing
+DROP TABLE IF EXISTS invoice_items CASCADE;
+DROP TABLE IF EXISTS invoices CASCADE;
+DROP TABLE IF EXISTS medicines CASCADE;
+DROP TABLE IF EXISTS procedure_master CASCADE;
+DROP TABLE IF EXISTS consultation_fees CASCADE;
 DROP TABLE IF EXISTS prescriptions CASCADE;
 DROP TABLE IF EXISTS medical_procedures CASCADE;
 DROP TABLE IF EXISTS medical_records CASCADE;
@@ -154,6 +160,7 @@ async function initDb() {
     await dbClient.connect();
     console.log(`Connected to database "${dbName}". Executing schema...`);
     await dbClient.query(schemaSql);
+    await dbClient.query(paymentSchemaSql);
     console.log('Schema created successfully.');
     await dbClient.end();
   } catch (error) {

@@ -114,3 +114,10 @@ erDiagram
 6. **`medical_records`**: Mencatat pemeriksaan dokter menggunakan metode **SOAP** (Subjective, Objective, Assessment, Plan).
 7. **`medical_procedures`**: Mencatat tindakan medis yang dilakukan saat pemeriksaan.
 8. **`prescriptions`**: Mencatat resep obat yang diberikan oleh dokter (nama obat, dosis, aturan pakai, jumlah).
+
+
+## Modul Pembayaran
+- **invoices** (1-1 registrations): invoice_number, subtotal, discount, total_amount, status (Belum Bayar/Lunas/Batal), payment_method, amount_paid, change_amount, paid_at, cashier_id.
+- **invoice_items** (N-1 invoices): item_type (Konsultasi/Tindakan/Obat), item_name, quantity, unit_price, subtotal.
+- **prescriptions.unit_price**: harga satuan obat.
+

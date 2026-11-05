@@ -158,3 +158,18 @@ cd frontend
 npm run dev
 ```
 *Frontend akan berjalan di `http://localhost:3000`.*
+
+---
+
+## 💳 Modul Pembayaran (Kasir)
+
+Alur: Pendaftaran → Antrean → Pemeriksaan SOAP → **Invoice otomatis** → **Pembayaran** → Kuitansi.
+
+- Saat dokter menyimpan SOAP, sistem membuat invoice berisi: Konsultasi (tarif per poli) + Tindakan (biaya) + Obat (qty x harga satuan yang diisi dokter).
+- Pasien **BPJS**: tagihan ditanggung BPJS, invoice otomatis berstatus Lunas (Rp 0).
+- Menu **Pembayaran** (Administrator & Petugas Pendaftaran): daftar tagihan, filter tanggal/status/pencarian, bayar (Tunai/Debit/Kredit/QRIS/Transfer) dengan hitung kembalian, cetak kuitansi. Diskon & pembatalan hanya Administrator.
+- Dashboard menampilkan pendapatan hari ini & tagihan belum bayar.
+- Endpoint: `GET /api/payments`, `GET /api/payments/summary`, `GET /api/payments/:id`, `PUT /api/payments/:id/pay`, `PUT /api/payments/:id/cancel`.
+- Tarif konsultasi diatur di `backend/utils/billing.js`.
+- DB lama: jalankan sekali `npm run db:migrate-payments` (non-destruktif, backfill invoice lama).
+

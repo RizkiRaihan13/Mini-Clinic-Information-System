@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -11,11 +11,14 @@ import {
   Activity,
   User,
   ShieldAlert,
+  Wallet,
+  Tags,
 } from 'lucide-react';
 
 export default function Layout() {
   const { user, logout, hasRole } = useAuth();
   const navigate = useNavigate();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -52,6 +55,18 @@ export default function Layout() {
       path: '/medical-records',
       icon: Stethoscope,
       roles: ['Administrator', 'Dokter'],
+    },
+    {
+      title: 'Pembayaran',
+      path: '/payments',
+      icon: Wallet,
+      roles: ['Administrator', 'Petugas Pendaftaran'],
+    },
+    {
+      title: 'Master Harga',
+      path: '/master-prices',
+      icon: Tags,
+      roles: ['Administrator'],
     },
   ];
 
@@ -111,7 +126,7 @@ export default function Layout() {
         {/* Logout Button */}
         <div className="p-4 border-t border-slate-800/80">
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutConfirm(true)}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 border border-rose-500/20 transition-all duration-200"
           >
             <LogOut className="w-4 h-4" />
@@ -142,6 +157,36 @@ export default function Layout() {
           <Outlet />
         </div>
       </main>
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-3xl p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center">
+                <LogOut className="w-5 h-5 text-rose-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white">Keluar dari aplikasi?</h3>
+                <p className="text-xs text-slate-400 mt-0.5">Anda harus login kembali untuk mengakses sistem.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold border border-slate-700"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold"
+              >
+                Ya, Keluar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

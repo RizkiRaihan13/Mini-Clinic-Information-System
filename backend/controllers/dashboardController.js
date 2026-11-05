@@ -32,7 +32,25 @@ const getDashboardMetrics = async (req, res) => {
       req.user.role === 'Dokter' ? [req.user.id] : []
     );
 
+    // Ringkasan pembayaran (hanya untuk kasir/admin)
+    let payment = null;
+    if (req.user.role !== 'Dokter') {
+      const payRes = await pool.query(
+        `SELECT
+           COALESCE(SUM(CASE WHEN i.status = 'Lunas' AND i.payment_method <> 'BPJS' THEN i.total_amount END), 0) AS revenue,
+           COUNT(*) FILTER (WHERE i.status = 'Belum Bayar') AS unpaid_count
+         FROM invoices i JOIN registrations r ON r.id = i.registration_id
+         WHERE r.visit_date = $1`,
+        [todayStr]
+      );
+      payment = {
+        revenue_today: Number(payRes.rows[0].revenue),
+        unpaid_count: Number(payRes.rows[0].unpaid_count),
+      };
+    }
+
     return sendSuccess(res, 'Dashboard metrics retrieved successfully', {
+      payment,
       total_patients: parseInt(totalPatientsRes.rows[0].count, 10),
       total_patients_today: parseInt(totalPatientsTodayRes.rows[0].count, 10),
       total_queues_today: parseInt(totalQueuesTodayRes.rows[0].count, 10),

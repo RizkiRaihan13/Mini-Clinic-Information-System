@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const apiRouter = require('./routes/api');
 const { sendError } = require('./middleware/responseHandler');
+const { autoAdvanceCalledQueues } = require('./controllers/queueController');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -33,6 +34,11 @@ app.use((err, req, res, next) => {
   console.error('Unhandled server error:', err);
   sendError(res, 'Internal Server Error', { server: err.message }, 500);
 });
+
+// Scheduler: Dipanggil > 1 menit -> otomatis Dalam Pemeriksaan
+setInterval(() => {
+  autoAdvanceCalledQueues();
+}, 10000);
 
 app.listen(PORT, () => {
   console.log(`====================================================`);

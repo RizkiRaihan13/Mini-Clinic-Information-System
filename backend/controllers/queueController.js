@@ -1,8 +1,41 @@
 const pool = require('../config/db');
 const { sendSuccess, sendError } = require('../middleware/responseHandler');
 
+// Antrean yang sudah Dipanggil lebih dari 1 menit otomatis berpindah ke
+// "Dalam Pemeriksaan" (registrasi -> "Pemeriksaan") agar dokter tidak perlu ubah manual.
+const AUTO_EXAM_AFTER_SECONDS = 60;
+
+const autoAdvanceCalledQueues = async () => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const res = await client.query(
+      `UPDATE queues SET status = 'Dalam Pemeriksaan'
+       WHERE status = 'Dipanggil'
+         AND called_at IS NOT NULL
+         AND called_at <= CURRENT_TIMESTAMP - ($1 || ' seconds')::interval
+       RETURNING registration_id`,
+      [String(AUTO_EXAM_AFTER_SECONDS)]
+    );
+    if (res.rowCount > 0) {
+      await client.query(
+        `UPDATE registrations SET status = 'Pemeriksaan'
+         WHERE id = ANY($1::int[]) AND status NOT IN ('Selesai', 'Batal')`,
+        [res.rows.map((r) => r.registration_id)]
+      );
+    }
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Error auto-advancing queues:', error.message);
+  } finally {
+    client.release();
+  }
+};
+
 const getQueues = async (req, res) => {
   try {
+    await autoAdvanceCalledQueues();
     const date = req.query.date || new Date().toISOString().slice(0, 10);
     const poli = req.query.poli;
     const status = req.query.status;
@@ -101,6 +134,7 @@ const callQueue = async (req, res) => {
        FROM registrations r
        WHERE q.id = $1
          AND r.id = q.registration_id
+         AND q.status NOT IN ('Selesai', 'Batal')
          ${req.user.role === 'Dokter' ? 'AND r.doctor_id = (SELECT id FROM doctors WHERE user_id = $2)' : ''}
        RETURNING q.*`,
       req.user.role === 'Dokter' ? [id, req.user.id] : [id]
@@ -108,7 +142,7 @@ const callQueue = async (req, res) => {
 
     if (queueRes.rowCount === 0) {
       await client.query('ROLLBACK');
-      return sendError(res, 'Queue item not found or not assigned to you', { queue: 'Not found or forbidden' }, 404);
+      return sendError(res, 'Antrean tidak ditemukan, bukan milik Anda, atau sudah Selesai/Batal (terkunci)', { queue: 'Not found, forbidden or locked' }, 404);
     }
 
     const updatedQueue = queueRes.rows[0];
@@ -170,6 +204,7 @@ const updateQueueStatus = async (req, res) => {
        FROM registrations r
        WHERE q.id = $2
          AND r.id = q.registration_id
+         AND q.status NOT IN ('Selesai', 'Batal')
          ${req.user.role === 'Dokter' ? 'AND r.doctor_id = (SELECT id FROM doctors WHERE user_id = $3)' : ''}
        RETURNING q.*`,
       req.user.role === 'Dokter' ? [status, id, req.user.id] : [status, id]
@@ -177,7 +212,7 @@ const updateQueueStatus = async (req, res) => {
 
     if (queueRes.rowCount === 0) {
       await client.query('ROLLBACK');
-      return sendError(res, 'Queue item not found or not assigned to you', { queue: 'Not found or forbidden' }, 404);
+      return sendError(res, 'Antrean tidak ditemukan, bukan milik Anda, atau sudah Selesai/Batal (terkunci)', { queue: 'Not found, forbidden or locked' }, 404);
     }
 
     const updatedQueue = queueRes.rows[0];
@@ -209,6 +244,7 @@ const updateQueueStatus = async (req, res) => {
 };
 
 module.exports = {
+  autoAdvanceCalledQueues,
   getQueues,
   createQueue,
   callQueue,

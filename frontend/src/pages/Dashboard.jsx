@@ -12,6 +12,7 @@ import {
   UserPlus,
   ListOrdered,
   Stethoscope,
+  Wallet,
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -76,6 +77,23 @@ export default function Dashboard() {
       color: 'from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-400',
     },
   ];
+
+  if (metrics.payment) {
+    statCards.push(
+      {
+        title: 'Pendapatan Hari Ini',
+        value: 'Rp ' + Number(metrics.payment.revenue_today).toLocaleString('id-ID'),
+        icon: Wallet,
+        color: 'from-emerald-500/20 to-lime-500/10 border-emerald-500/30 text-emerald-400',
+      },
+      {
+        title: 'Tagihan Belum Bayar',
+        value: metrics.payment.unpaid_count,
+        icon: Clock,
+        color: 'from-rose-500/20 to-orange-500/10 border-rose-500/30 text-rose-400',
+      }
+    );
+  }
 
   return (
     <div className="space-y-8">

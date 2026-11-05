@@ -33,12 +33,12 @@ export default function MedicalRecords() {
 
   // Dynamic Array State: Procedures & Prescriptions
   const [procedures, setProcedures] = useState([
-    { procedure_name: "", description: "", cost: 0 },
+    { procedure_id: "", description: "" },
   ]);
 
   const [prescriptions, setPrescriptions] = useState([
     {
-      medicine_name: "",
+      medicine_id: "",
       dosage: "500 mg",
       frequency: "3x1 sesudah makan",
       quantity: 10,
@@ -50,10 +50,18 @@ export default function MedicalRecords() {
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Patient History Lookup state
-  const [patientSearch, setPatientSearch] = useState("");
-  const [patients, setPatients] = useState([]);
-  const [selectedHistoryPatient, setSelectedHistoryPatient] = useState(null);
+  // Riwayat pemeriksaan (semua pasien) + filter
+  const POLIS = ["Poli Umum", "Poli Gigi", "Poli Anak", "Poli Penyakit Dalam", "Poli THT"];
+  const [historyFilters, setHistoryFilters] = useState({
+    search: "",
+    date_from: "",
+    date_to: "",
+    poli: "",
+    doctor_id: "",
+  });
+  const [doctors, setDoctors] = useState([]);
+  const [medicineMaster, setMedicineMaster] = useState([]);
+  const [procedureMaster, setProcedureMaster] = useState([]);
   const [patientRecords, setPatientRecords] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
@@ -61,8 +69,18 @@ export default function MedicalRecords() {
 
   useEffect(() => {
     fetchActiveQueues();
-    fetchPatientList();
+    fetchDoctors();
+    fetchMasters();
+    // Refresh berkala agar pasien yang dipanggil muncul otomatis setelah status berubah
+    const timer = setInterval(fetchActiveQueues, 10000);
+    return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== "history") return;
+    const t = setTimeout(fetchHistory, 300);
+    return () => clearTimeout(t);
+  }, [activeTab, historyFilters]);
 
   const fetchActiveQueues = async () => {
     try {
@@ -70,11 +88,15 @@ export default function MedicalRecords() {
         params: { date: new Date().toISOString().slice(0, 10) },
       });
       if (res.data.success) {
-        // Filter queues for waiting / examination
-        setQueues(
-          res.data.data.filter(
-            (q) => q.queue_status !== "Selesai" && q.queue_status !== "Batal",
-          ),
+        // Hanya pasien yang sudah dipanggil / sedang diperiksa
+        const active = res.data.data.filter(
+          (q) =>
+            q.queue_status === "Dipanggil" ||
+            q.queue_status === "Dalam Pemeriksaan",
+        );
+        setQueues(active);
+        setSelectedQueue((cur) =>
+          cur ? active.find((q) => q.id === cur.id) || null : cur,
         );
       }
     } catch (err) {
@@ -82,17 +104,43 @@ export default function MedicalRecords() {
     }
   };
 
-  const fetchPatientList = async () => {
+  const fetchMasters = async () => {
     try {
-      const res = await api.get("/patients", { params: { limit: 100 } });
-      if (res.data.success) {
-        setPatients(res.data.data.patients);
-      }
+      const [m, p] = await Promise.all([
+        api.get("/master/medicines"),
+        api.get("/master/procedures"),
+      ]);
+      setMedicineMaster(m.data.data);
+      setProcedureMaster(p.data.data);
     } catch (err) {
-      console.error("Error fetching patient list:", err);
+      console.error("Error fetching master data:", err);
     }
   };
 
+  const fetchDoctors = async () => {
+    try {
+      const res = await api.get("/dashboard");
+      if (res.data.success) setDoctors(res.data.data.doctors || []);
+    } catch (err) {
+      console.error("Error fetching doctors:", err);
+    }
+  };
+
+  const fetchHistory = async () => {
+    try {
+      setHistoryLoading(true);
+      const params = {};
+      Object.entries(historyFilters).forEach(([k, v]) => {
+        if (v) params[k] = v;
+      });
+      const res = await api.get("/medical-records", { params });
+      if (res.data.success) setPatientRecords(res.data.data);
+    } catch (err) {
+      console.error("Error fetching history:", err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
   const handleSelectQueue = (queue) => {
     setSelectedQueue(queue);
     setSoapForm({
@@ -110,7 +158,7 @@ export default function MedicalRecords() {
   const handleAddProcedure = () => {
     setProcedures([
       ...procedures,
-      { procedure_name: "", description: "", cost: 0 },
+      { procedure_id: "", description: "" },
     ]);
   };
 
@@ -129,7 +177,7 @@ export default function MedicalRecords() {
     setPrescriptions([
       ...prescriptions,
       {
-        medicine_name: "",
+        medicine_id: "",
         dosage: "500 mg",
         frequency: "3x1 sesudah makan",
         quantity: 10,
@@ -173,9 +221,9 @@ export default function MedicalRecords() {
         // dipertahankan untuk kompatibilitas payload lama.
         doctor_id: selectedQueue.doctor_id,
         ...soapForm,
-        procedures: procedures.filter((p) => p.procedure_name.trim() !== ""),
+        procedures: procedures.filter((p) => p.procedure_id !== ""),
         prescriptions: prescriptions.filter(
-          (p) => p.medicine_name.trim() !== "",
+          (p) => p.medicine_id !== "",
         ),
       };
 
@@ -196,10 +244,10 @@ export default function MedicalRecords() {
           assessment: "",
           plan: "",
         });
-        setProcedures([{ procedure_name: "", description: "", cost: 0 }]);
+        setProcedures([{ procedure_id: "", description: "" }]);
         setPrescriptions([
           {
-            medicine_name: "",
+            medicine_id: "",
             dosage: "500 mg",
             frequency: "3x1 sesudah makan",
             quantity: 10,
@@ -215,22 +263,6 @@ export default function MedicalRecords() {
       );
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  // History search handler
-  const handleSelectHistoryPatient = async (patient) => {
-    setSelectedHistoryPatient(patient);
-    try {
-      setHistoryLoading(true);
-      const res = await api.get(`/medical-records/${patient.id}`);
-      if (res.data.success) {
-        setPatientRecords(res.data.data);
-      }
-    } catch (err) {
-      console.error("Error fetching history:", err);
-    } finally {
-      setHistoryLoading(false);
     }
   };
 
@@ -318,7 +350,7 @@ export default function MedicalRecords() {
 
               {queues.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-6">
-                  Tidak ada pasien antrean yang menunggu.
+                  Belum ada pasien yang dipanggil. Pasien muncul di sini setelah dipanggil dari menu Antrean.
                 </p>
               ) : (
                 <div className="space-y-2.5 max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
@@ -518,32 +550,20 @@ export default function MedicalRecords() {
 
                   {procedures.map((proc, idx) => (
                     <div key={idx} className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        placeholder="Nama Tindakan Medis"
-                        value={proc.procedure_name}
+                      <select
+                        value={proc.procedure_id}
                         onChange={(e) =>
-                          handleProcedureChange(
-                            idx,
-                            "procedure_name",
-                            e.target.value,
-                          )
+                          handleProcedureChange(idx, "procedure_id", e.target.value)
                         }
                         className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-xs focus:border-indigo-500"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Biaya (Rp)"
-                        value={proc.cost}
-                        onChange={(e) =>
-                          handleProcedureChange(
-                            idx,
-                            "cost",
-                            parseFloat(e.target.value) || 0,
-                          )
-                        }
-                        className="w-32 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-xs focus:border-indigo-500"
-                      />
+                      >
+                        <option value="">-- Pilih Tindakan (opsional) --</option>
+                        {procedureMaster.map((pm) => (
+                          <option key={pm.id} value={pm.id}>
+                            {pm.name}
+                          </option>
+                        ))}
+                      </select>
                       {procedures.length > 1 && (
                         <button
                           type="button"
@@ -579,29 +599,26 @@ export default function MedicalRecords() {
                       key={idx}
                       className="grid grid-cols-1 sm:grid-cols-4 gap-2 bg-slate-900/60 p-3 rounded-2xl border border-slate-800"
                     >
-                      <input
-                        type="text"
-                        placeholder="Nama Obat (Contoh: Paracetamol)"
-                        value={rx.medicine_name}
+                      <select
+                        value={rx.medicine_id}
                         onChange={(e) =>
-                          handlePrescriptionChange(
-                            idx,
-                            "medicine_name",
-                            e.target.value,
-                          )
+                          handlePrescriptionChange(idx, "medicine_id", e.target.value)
                         }
                         className="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-xs focus:border-indigo-500"
-                      />
+                      >
+                        <option value="">-- Pilih Obat --</option>
+                        {medicineMaster.map((m) => (
+                          <option key={m.id} value={m.id} disabled={m.stock <= 0}>
+                            {m.name} (stok {m.stock})
+                          </option>
+                        ))}
+                      </select>
                       <input
                         type="text"
                         placeholder="Dosis (Contoh: 500mg)"
                         value={rx.dosage}
                         onChange={(e) =>
-                          handlePrescriptionChange(
-                            idx,
-                            "dosage",
-                            e.target.value,
-                          )
+                          handlePrescriptionChange(idx, "dosage", e.target.value)
                         }
                         className="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-xs focus:border-indigo-500"
                       />
@@ -610,17 +627,14 @@ export default function MedicalRecords() {
                         placeholder="Aturan Pakai (Contoh: 3x1)"
                         value={rx.frequency}
                         onChange={(e) =>
-                          handlePrescriptionChange(
-                            idx,
-                            "frequency",
-                            e.target.value,
-                          )
+                          handlePrescriptionChange(idx, "frequency", e.target.value)
                         }
                         className="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-xs focus:border-indigo-500"
                       />
                       <div className="flex items-center gap-2">
                         <input
                           type="number"
+                          min="1"
                           placeholder="Jumlah"
                           value={rx.quantity}
                           onChange={(e) =>
@@ -676,166 +690,149 @@ export default function MedicalRecords() {
           <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
             <h2 className="text-md font-bold text-white flex items-center gap-2">
               <Search className="w-5 h-5 text-indigo-400" />
-              <span>Cari Pasien Untuk Melihat Riwayat Rekam Medis</span>
+              <span>Riwayat Seluruh Pemeriksaan Pasien</span>
             </h2>
-            <Select
-              unstyled
-              options={patients.map((patient) => ({
-                value: patient.id,
-                label: `${patient.medical_record_number} - ${patient.name} (${patient.nik})`,
-                patient,
-              }))}
-              value={
-                selectedHistoryPatient
-                  ? {
-                      value: selectedHistoryPatient.id,
-                      label: `${selectedHistoryPatient.medical_record_number} - ${selectedHistoryPatient.name} (${selectedHistoryPatient.nik})`,
-                      patient: selectedHistoryPatient,
-                    }
-                  : null
-              }
-              onChange={(selected) => {
-                if (selected) {
-                  handleSelectHistoryPatient(selected.patient);
-                } else {
-                  setSelectedHistoryPatient(null);
-                  setPatientRecords([]);
-                }
-              }}
-              placeholder="Cari Pasien Berdasarkan Nama / NIK / RM..."
-              noOptionsMessage={() => "Pasien tidak ditemukan"}
-              isClearable
-              classNames={{
-                control: ({ isFocused }) =>
-                  `flex items-center w-full px-3 py-1.5 bg-slate-900 border rounded-xl transition-all ${
-                    isFocused
-                      ? "border-indigo-500 ring-2 ring-indigo-500/20"
-                      : "border-slate-700"
-                  }`,
-
-                placeholder: () => "text-slate-400 text-sm",
-
-                input: () => "text-slate-100 text-sm",
-
-                menu: () =>
-                  "mt-2 bg-slate-900 border border-slate-700 rounded-xl shadow-xl overflow-hidden z-50",
-
-                option: ({ isFocused, isSelected }) =>
-                  `px-4 py-2 text-sm cursor-pointer ${
-                    isSelected
-                      ? "bg-indigo-600 text-white"
-                      : isFocused
-                        ? "bg-slate-800 text-white"
-                        : "text-slate-200"
-                  }`,
-
-                noOptionsMessage: () =>
-                  "text-slate-400 text-center p-3 text-sm",
-              }}
-              menuPortalTarget={document.body}
-              menuPosition="fixed"
-              styles={{
-                menuPortal: (base) => ({
-                  ...base,
-                  zIndex: 9999,
-                }),
-              }}
-            />
-          </div>
-          {selectedHistoryPatient && (
-            <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-6">
-              <div className="border-b border-slate-800 pb-4">
-                <h3 className="text-xl font-bold text-white">
-                  {selectedHistoryPatient.name}
-                </h3>
-                <p className="text-xs text-indigo-300 font-mono">
-                  No. RM: {selectedHistoryPatient.medical_record_number} | NIK:{" "}
-                  {selectedHistoryPatient.nik}
-                </p>
-              </div>
-
-              {historyLoading ? (
-                <p className="text-xs text-slate-400">
-                  Memuat riwayat pemeriksaan...
-                </p>
-              ) : patientRecords.length === 0 ? (
-                <div className="p-8 text-center text-slate-400 text-xs">
-                  Belum ada riwayat rekam medis SOAP untuk pasien ini.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {patientRecords.map((rec) => (
-                    <div
-                      key={rec.id}
-                      className="p-5 rounded-2xl glass-card border border-slate-800 space-y-3"
-                    >
-                      <div className="flex items-center justify-between border-b border-slate-800 pb-2 text-xs">
-                        <span className="font-semibold text-indigo-300">
-                          Poli: {rec.poli} | Dokter: {rec.doctor_name}
-                        </span>
-                        <span className="text-slate-400">
-                          {new Date(rec.created_at).toLocaleString("id-ID")}
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                        <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                          <strong className="text-teal-300">
-                            Subjective (S):
-                          </strong>
-                          <p className="text-slate-300 mt-1">
-                            {rec.subjective}
-                          </p>
-                        </div>
-
-                        <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                          <strong className="text-cyan-300">
-                            Objective (O):
-                          </strong>
-                          <p className="text-slate-300 mt-1">
-                            TD: {rec.bp} | Suhu: {rec.temp}°C | BB: {rec.weight}
-                            kg | TB: {rec.height}cm
-                          </p>
-                        </div>
-
-                        <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                          <strong className="text-amber-300">
-                            Assessment (A):
-                          </strong>
-                          <p className="text-slate-300 mt-1">
-                            {rec.assessment}
-                          </p>
-                        </div>
-
-                        <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                          <strong className="text-emerald-300">
-                            Plan (P):
-                          </strong>
-                          <p className="text-slate-300 mt-1">{rec.plan}</p>
-                        </div>
-                      </div>
-
-                      {rec.prescriptions && rec.prescriptions.length > 0 && (
-                        <div className="pt-2 border-t border-slate-800 text-xs">
-                          <strong className="text-indigo-400">
-                            Resep Obat:
-                          </strong>
-                          <ul className="list-disc pl-4 text-slate-300 mt-1 space-y-1">
-                            {rec.prescriptions.map((rx) => (
-                              <li key={rx.id}>
-                                {rx.medicine_name} ({rx.dosage}) -{" "}
-                                {rx.frequency} [{rx.quantity} pcs]
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+              <input
+                type="text"
+                value={historyFilters.search}
+                onChange={(e) => setHistoryFilters({ ...historyFilters, search: e.target.value })}
+                placeholder="Cari Nama / NIK / No. RM"
+                className="md:col-span-2 px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-sm"
+              />
+              <input
+                type="date"
+                value={historyFilters.date_from}
+                onChange={(e) => setHistoryFilters({ ...historyFilters, date_from: e.target.value })}
+                title="Dari tanggal"
+                className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-sm"
+              />
+              <input
+                type="date"
+                value={historyFilters.date_to}
+                onChange={(e) => setHistoryFilters({ ...historyFilters, date_to: e.target.value })}
+                title="Sampai tanggal"
+                className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-sm"
+              />
+              {user?.role !== "Dokter" && (
+                <>
+                  <select
+                    value={historyFilters.poli}
+                    onChange={(e) => setHistoryFilters({ ...historyFilters, poli: e.target.value })}
+                    className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-sm"
+                  >
+                    <option value="">Semua Poli</option>
+                    {POLIS.map((p) => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={historyFilters.doctor_id}
+                    onChange={(e) => setHistoryFilters({ ...historyFilters, doctor_id: e.target.value })}
+                    className="px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-sm"
+                  >
+                    <option value="">Semua Dokter</option>
+                    {doctors.map((d) => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                </>
               )}
             </div>
-          )}
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span>{patientRecords.length} data ditemukan (maks. 200 terbaru)</span>
+              <button
+                type="button"
+                onClick={() =>
+                  setHistoryFilters({ search: "", date_from: "", date_to: "", poli: "", doctor_id: "" })
+                }
+                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+              >
+                Reset Filter
+              </button>
+            </div>
+          </div>
+
+          <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
+            {historyLoading ? (
+              <p className="text-xs text-slate-400">Memuat riwayat pemeriksaan...</p>
+            ) : patientRecords.length === 0 ? (
+              <div className="p-8 text-center text-slate-400 text-xs">
+                Tidak ada riwayat pemeriksaan yang sesuai filter.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {patientRecords.map((rec) => (
+                  <div key={rec.id} className="p-5 rounded-2xl glass-card border border-slate-800 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-800 pb-2 text-xs">
+                      <div>
+                        <p className="text-sm font-bold text-white">{rec.patient_name}</p>
+                        <p className="text-indigo-300 font-mono">
+                          No. RM: {rec.medical_record_number} | NIK: {rec.nik}
+                        </p>
+                      </div>
+                      <div className="sm:text-right">
+                        <p className="font-semibold text-indigo-300">
+                          {rec.poli} | {rec.doctor_name}
+                        </p>
+                        <p className="text-slate-400">
+                          {new Date(rec.created_at).toLocaleString("id-ID")}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                        <strong className="text-teal-300">Subjective (S):</strong>
+                        <p className="text-slate-300 mt-1">{rec.subjective}</p>
+                      </div>
+                      <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                        <strong className="text-cyan-300">Objective (O):</strong>
+                        <p className="text-slate-300 mt-1">
+                          TD: {rec.bp} | Suhu: {rec.temp}°C | BB: {rec.weight} kg | TB: {rec.height} cm
+                        </p>
+                      </div>
+                      <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                        <strong className="text-amber-300">Assessment (A):</strong>
+                        <p className="text-slate-300 mt-1">{rec.assessment}</p>
+                      </div>
+                      <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                        <strong className="text-emerald-300">Plan (P):</strong>
+                        <p className="text-slate-300 mt-1">{rec.plan}</p>
+                      </div>
+                    </div>
+
+                    {rec.procedures && rec.procedures.length > 0 && (
+                      <div className="pt-2 border-t border-slate-800 text-xs">
+                        <strong className="text-cyan-400">Tindakan Medis:</strong>
+                        <ul className="list-disc pl-4 text-slate-300 mt-1 space-y-1">
+                          {rec.procedures.map((pr) => (
+                            <li key={pr.id}>
+                              {pr.procedure_name}
+                              {pr.description ? ` - ${pr.description}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {rec.prescriptions && rec.prescriptions.length > 0 && (
+                      <div className="pt-2 border-t border-slate-800 text-xs">
+                        <strong className="text-indigo-400">Resep Obat:</strong>
+                        <ul className="list-disc pl-4 text-slate-300 mt-1 space-y-1">
+                          {rec.prescriptions.map((rx) => (
+                            <li key={rx.id}>
+                              {rx.medicine_name} ({rx.dosage}) - {rx.frequency} [{rx.quantity} pcs]
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
