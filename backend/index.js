@@ -12,7 +12,12 @@ const PORT = process.env.PORT || 5001;
 
 // Middlewares
 app.use(helmet());
-app.use(cors());
+// CORS_ORIGIN: daftar origin dipisah koma (contoh: https://app.vercel.app). Kosong = izinkan semua.
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((o) => o.trim().replace(/\/$/, ''))
+  .filter(Boolean);
+app.use(cors(allowedOrigins.length ? { origin: allowedOrigins } : undefined));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

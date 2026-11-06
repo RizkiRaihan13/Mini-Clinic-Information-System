@@ -1,22 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
-import { Tags, Pill, Syringe, Stethoscope, Plus, Save, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Tags, Pill, Syringe, Stethoscope, Plus, Pencil, X, Search, CheckCircle2, AlertCircle } from 'lucide-react';
 
 const rupiah = (n) => 'Rp ' + Number(n || 0).toLocaleString('id-ID');
-const inputCls = 'px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-sm w-full';
+const inputCls = 'w-full mt-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-slate-100 text-sm focus:border-amber-500 outline-none';
+const LOW_STOCK = 20;
+
+const StatusBadge = ({ active }) => (
+  <span className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${active ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-slate-700/40 text-slate-400 border-slate-600'}`}>
+    {active ? 'Aktif' : 'Nonaktif'}
+  </span>
+);
 
 export default function MasterPrices() {
   const [tab, setTab] = useState('medicines');
   const [medicines, setMedicines] = useState([]);
   const [procedures, setProcedures] = useState([]);
   const [fees, setFees] = useState([]);
+  const [search, setSearch] = useState('');
   const [msg, setMsg] = useState({ type: '', text: '' });
-  const [newMed, setNewMed] = useState({ name: '', unit: 'tablet', price: '', stock: '' });
-  const [newProc, setNewProc] = useState({ name: '', price: '' });
+  const [modal, setModal] = useState(null); // { kind, data }
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    setSearch('');
+  }, [tab]);
 
   const load = async () => {
     const [m, p, f] = await Promise.all([
@@ -34,49 +46,81 @@ export default function MasterPrices() {
     setTimeout(() => setMsg({ type: '', text: '' }), 4000);
   };
 
-  const run = async (fn, okText) => {
+  const openAdd = (kind) =>
+    setModal({
+      kind,
+      data: kind === 'medicine' ? { name: '', unit: 'tablet', price: '', stock: '', is_active: true } : { name: '', price: '', is_active: true },
+    });
+
+  const handleSave = async (e) => {
+    e.preventDefault();
+    const { kind, data } = modal;
     try {
-      await fn();
-      notify('ok', okText);
+      setSaving(true);
+      if (kind === 'fee') {
+        await api.put(`/master/consultation-fees/${encodeURIComponent(data.poli)}`, { fee: data.fee });
+      } else {
+        const base = kind === 'medicine' ? '/master/medicines' : '/master/procedures';
+        if (data.id) await api.put(`${base}/${data.id}`, data);
+        else await api.post(base, data);
+      }
+      notify('ok', 'Data berhasil disimpan.');
+      setModal(null);
       await load();
-      return true;
     } catch (err) {
       notify('err', err.response?.data?.message || 'Gagal menyimpan.');
-      return false;
+    } finally {
+      setSaving(false);
     }
   };
 
-  const edit = (list, setList, id, field, value) =>
-    setList(list.map((x) => (x.id === id ? { ...x, [field]: value } : x)));
+  const toggleActive = async (kind, row) => {
+    try {
+      const base = kind === 'medicine' ? '/master/medicines' : '/master/procedures';
+      await api.put(`${base}/${row.id}`, { ...row, is_active: !row.is_active });
+      await load();
+    } catch (err) {
+      notify('err', err.response?.data?.message || 'Gagal mengubah status.');
+    }
+  };
+
+  const q = search.toLowerCase();
+  const filteredMeds = useMemo(() => medicines.filter((m) => m.name.toLowerCase().includes(q)), [medicines, q]);
+  const filteredProcs = useMemo(() => procedures.filter((p) => p.name.toLowerCase().includes(q)), [procedures, q]);
 
   const tabs = [
-    { key: 'medicines', label: 'Master Obat', icon: Pill },
-    { key: 'procedures', label: 'Master Tindakan', icon: Syringe },
-    { key: 'fees', label: 'Tarif Konsultasi', icon: Stethoscope },
+    { key: 'medicines', label: 'Master Obat', icon: Pill, count: medicines.length },
+    { key: 'procedures', label: 'Master Tindakan', icon: Syringe, count: procedures.length },
+    { key: 'fees', label: 'Tarif Konsultasi', icon: Stethoscope, count: fees.length },
   ];
 
+  const th = 'px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-400';
+  const td = 'px-4 py-3 text-sm';
+  const editBtn = 'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs text-slate-200';
+
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-3">
             <Tags className="w-7 h-7 text-amber-400" />
             <span>Master Harga</span>
           </h1>
           <p className="text-slate-400 text-sm mt-1">
-            Harga obat, tindakan, dan konsultasi diatur di sini. Dokter hanya memilih item, harga otomatis masuk ke tagihan.
+            Kelola harga obat, tindakan, dan konsultasi. Dokter hanya memilih item; harga otomatis masuk tagihan.
           </p>
         </div>
-        <div className="flex items-center p-1 bg-slate-900 rounded-2xl border border-slate-800">
+        <div className="flex items-center p-1 bg-slate-900 rounded-2xl border border-slate-800 self-start">
           {tabs.map((t) => {
             const Icon = t.icon;
             return (
               <button
                 key={t.key}
                 onClick={() => setTab(t.key)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold ${tab === t.key ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${tab === t.key ? 'bg-amber-500 text-slate-950' : 'text-slate-400 hover:text-slate-200'}`}
               >
                 <Icon className="w-4 h-4" /> {t.label}
+                <span className={`px-1.5 rounded-full text-[10px] ${tab === t.key ? 'bg-slate-950/20' : 'bg-slate-800'}`}>{t.count}</span>
               </button>
             );
           })}
@@ -90,81 +134,155 @@ export default function MasterPrices() {
         </div>
       )}
 
-      {tab === 'medicines' && (
-        <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-4 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-xs uppercase text-slate-400 border-b border-slate-800">
-              <tr><th className="text-left py-2">Nama Obat</th><th className="text-left">Satuan</th><th className="text-left">Harga (Rp)</th><th className="text-left">Stok</th><th className="text-left">Aktif</th><th></th></tr>
-            </thead>
-            <tbody>
-              {medicines.map((m) => (
-                <tr key={m.id} className="border-b border-slate-800/60">
-                  <td className="py-2 pr-2"><input className={inputCls} value={m.name} onChange={(e) => edit(medicines, setMedicines, m.id, 'name', e.target.value)} /></td>
-                  <td className="pr-2"><input className={inputCls} value={m.unit} onChange={(e) => edit(medicines, setMedicines, m.id, 'unit', e.target.value)} /></td>
-                  <td className="pr-2"><input type="number" min="0" className={inputCls} value={m.price} onChange={(e) => edit(medicines, setMedicines, m.id, 'price', e.target.value)} /></td>
-                  <td className="pr-2"><input type="number" min="0" className={inputCls} value={m.stock} onChange={(e) => edit(medicines, setMedicines, m.id, 'stock', e.target.value)} /></td>
-                  <td className="pr-2"><input type="checkbox" checked={m.is_active} onChange={(e) => edit(medicines, setMedicines, m.id, 'is_active', e.target.checked)} /></td>
-                  <td><button onClick={() => run(() => api.put(`/master/medicines/${m.id}`, m), 'Obat diperbarui.')} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-teal-300"><Save className="w-4 h-4" /></button></td>
-                </tr>
-              ))}
-              <tr>
-                <td className="py-3 pr-2"><input className={inputCls} placeholder="Obat baru" value={newMed.name} onChange={(e) => setNewMed({ ...newMed, name: e.target.value })} /></td>
-                <td className="pr-2"><input className={inputCls} value={newMed.unit} onChange={(e) => setNewMed({ ...newMed, unit: e.target.value })} /></td>
-                <td className="pr-2"><input type="number" min="0" className={inputCls} placeholder="Harga" value={newMed.price} onChange={(e) => setNewMed({ ...newMed, price: e.target.value })} /></td>
-                <td className="pr-2"><input type="number" min="0" className={inputCls} placeholder="Stok" value={newMed.stock} onChange={(e) => setNewMed({ ...newMed, stock: e.target.value })} /></td>
-                <td></td>
-                <td>
-                  <button onClick={async () => { if (await run(() => api.post('/master/medicines', newMed), 'Obat ditambahkan.')) setNewMed({ name: '', unit: 'tablet', price: '', stock: '' }); }} className="p-2 rounded-lg bg-amber-500 text-slate-950"><Plus className="w-4 h-4" /></button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <p className="text-xs text-slate-500">Stok berkurang otomatis saat dokter menyimpan resep. Nonaktifkan obat agar tidak muncul di pilihan dokter.</p>
+      {/* Toolbar */}
+      {tab !== 'fees' && (
+        <div className="flex flex-col sm:flex-row gap-3 justify-between">
+          <div className="relative sm:w-80">
+            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={tab === 'medicines' ? 'Cari nama obat...' : 'Cari nama tindakan...'}
+              className="w-full pl-9 pr-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-sm"
+            />
+          </div>
+          <button
+            onClick={() => openAdd(tab === 'medicines' ? 'medicine' : 'procedure')}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold"
+          >
+            <Plus className="w-4 h-4" /> {tab === 'medicines' ? 'Tambah Obat' : 'Tambah Tindakan'}
+          </button>
         </div>
       )}
 
-      {tab === 'procedures' && (
-        <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-4 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-xs uppercase text-slate-400 border-b border-slate-800">
-              <tr><th className="text-left py-2">Nama Tindakan</th><th className="text-left">Tarif (Rp)</th><th className="text-left">Aktif</th><th></th></tr>
-            </thead>
-            <tbody>
-              {procedures.map((p) => (
-                <tr key={p.id} className="border-b border-slate-800/60">
-                  <td className="py-2 pr-2"><input className={inputCls} value={p.name} onChange={(e) => edit(procedures, setProcedures, p.id, 'name', e.target.value)} /></td>
-                  <td className="pr-2"><input type="number" min="0" className={inputCls} value={p.price} onChange={(e) => edit(procedures, setProcedures, p.id, 'price', e.target.value)} /></td>
-                  <td className="pr-2"><input type="checkbox" checked={p.is_active} onChange={(e) => edit(procedures, setProcedures, p.id, 'is_active', e.target.checked)} /></td>
-                  <td><button onClick={() => run(() => api.put(`/master/procedures/${p.id}`, p), 'Tindakan diperbarui.')} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-teal-300"><Save className="w-4 h-4" /></button></td>
-                </tr>
-              ))}
-              <tr>
-                <td className="py-3 pr-2"><input className={inputCls} placeholder="Tindakan baru" value={newProc.name} onChange={(e) => setNewProc({ ...newProc, name: e.target.value })} /></td>
-                <td className="pr-2"><input type="number" min="0" className={inputCls} placeholder="Tarif" value={newProc.price} onChange={(e) => setNewProc({ ...newProc, price: e.target.value })} /></td>
-                <td></td>
-                <td>
-                  <button onClick={async () => { if (await run(() => api.post('/master/procedures', newProc), 'Tindakan ditambahkan.')) setNewProc({ name: '', price: '' }); }} className="p-2 rounded-lg bg-amber-500 text-slate-950"><Plus className="w-4 h-4" /></button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )}
+      <div className="glass-panel rounded-3xl border border-slate-800 overflow-hidden">
+        <div className="overflow-x-auto">
+          {tab === 'medicines' && (
+            <table className="w-full">
+              <thead className="bg-slate-900/80 border-b border-slate-800">
+                <tr><th className={th}>No</th><th className={th}>Nama Obat</th><th className={th}>Satuan</th><th className={`${th} text-right`}>Harga</th><th className={`${th} text-right`}>Stok</th><th className={th}>Status</th><th className={`${th} text-right`}>Aksi</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {filteredMeds.length === 0 && <tr><td colSpan="7" className="py-10 text-center text-slate-500 text-sm">Data tidak ditemukan.</td></tr>}
+                {filteredMeds.map((m, i) => (
+                  <tr key={m.id} className={`hover:bg-slate-800/30 ${m.is_active ? '' : 'opacity-60'}`}>
+                    <td className={`${td} text-slate-500`}>{i + 1}</td>
+                    <td className={`${td} text-slate-100 font-medium`}>{m.name}</td>
+                    <td className={`${td} text-slate-300`}>{m.unit}</td>
+                    <td className={`${td} text-right text-slate-100 font-semibold`}>{rupiah(m.price)}</td>
+                    <td className={`${td} text-right`}>
+                      <span className={m.stock <= 0 ? 'text-rose-400 font-bold' : m.stock <= LOW_STOCK ? 'text-amber-300 font-bold' : 'text-slate-200'}>{m.stock}</span>
+                      {m.stock <= 0 ? <span className="ml-2 text-[10px] text-rose-400">HABIS</span> : m.stock <= LOW_STOCK ? <span className="ml-2 text-[10px] text-amber-300">MENIPIS</span> : null}
+                    </td>
+                    <td className={td}><StatusBadge active={m.is_active} /></td>
+                    <td className={`${td} text-right whitespace-nowrap`}>
+                      <button onClick={() => setModal({ kind: 'medicine', data: { ...m } })} className={editBtn}><Pencil className="w-3.5 h-3.5" /> Edit</button>
+                      <button onClick={() => toggleActive('medicine', m)} className={`${editBtn} ml-2`}>{m.is_active ? 'Nonaktifkan' : 'Aktifkan'}</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
 
-      {tab === 'fees' && (
-        <div className="glass-panel rounded-3xl border border-slate-800 p-6 space-y-3 max-w-xl">
-          {fees.map((f) => (
-            <div key={f.poli} className="flex items-center gap-3">
-              <span className="w-48 text-sm text-slate-200">{f.poli}</span>
-              <input type="number" min="0" className={inputCls} value={f.fee} onChange={(e) => setFees(fees.map((x) => (x.poli === f.poli ? { ...x, fee: e.target.value } : x)))} />
-              <span className="w-28 text-xs text-slate-500">{rupiah(f.fee)}</span>
-              <button onClick={() => run(() => api.put(`/master/consultation-fees/${encodeURIComponent(f.poli)}`, { fee: f.fee }), `Tarif ${f.poli} diperbarui.`)} className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-teal-300"><Save className="w-4 h-4" /></button>
+          {tab === 'procedures' && (
+            <table className="w-full">
+              <thead className="bg-slate-900/80 border-b border-slate-800">
+                <tr><th className={th}>No</th><th className={th}>Nama Tindakan</th><th className={`${th} text-right`}>Tarif</th><th className={th}>Status</th><th className={`${th} text-right`}>Aksi</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {filteredProcs.length === 0 && <tr><td colSpan="5" className="py-10 text-center text-slate-500 text-sm">Data tidak ditemukan.</td></tr>}
+                {filteredProcs.map((p, i) => (
+                  <tr key={p.id} className={`hover:bg-slate-800/30 ${p.is_active ? '' : 'opacity-60'}`}>
+                    <td className={`${td} text-slate-500`}>{i + 1}</td>
+                    <td className={`${td} text-slate-100 font-medium`}>{p.name}</td>
+                    <td className={`${td} text-right text-slate-100 font-semibold`}>{rupiah(p.price)}</td>
+                    <td className={td}><StatusBadge active={p.is_active} /></td>
+                    <td className={`${td} text-right whitespace-nowrap`}>
+                      <button onClick={() => setModal({ kind: 'procedure', data: { ...p } })} className={editBtn}><Pencil className="w-3.5 h-3.5" /> Edit</button>
+                      <button onClick={() => toggleActive('procedure', p)} className={`${editBtn} ml-2`}>{p.is_active ? 'Nonaktifkan' : 'Aktifkan'}</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          {tab === 'fees' && (
+            <table className="w-full">
+              <thead className="bg-slate-900/80 border-b border-slate-800">
+                <tr><th className={th}>No</th><th className={th}>Poli</th><th className={`${th} text-right`}>Tarif Konsultasi</th><th className={`${th} text-right`}>Aksi</th></tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {fees.map((f, i) => (
+                  <tr key={f.poli} className="hover:bg-slate-800/30">
+                    <td className={`${td} text-slate-500`}>{i + 1}</td>
+                    <td className={`${td} text-slate-100 font-medium`}>{f.poli}</td>
+                    <td className={`${td} text-right text-slate-100 font-semibold`}>{rupiah(f.fee)}</td>
+                    <td className={`${td} text-right`}>
+                      <button onClick={() => setModal({ kind: 'fee', data: { ...f } })} className={editBtn}><Pencil className="w-3.5 h-3.5" /> Edit</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+      <p className="text-xs text-slate-500">
+        {tab === 'medicines' && `Stok berkurang otomatis saat dokter menyimpan resep. Stok ≤ ${LOW_STOCK} ditandai menipis. Obat nonaktif tidak muncul di pilihan dokter.`}
+        {tab === 'procedures' && 'Perubahan tarif hanya berlaku untuk tagihan berikutnya; tagihan lama tidak berubah.'}
+        {tab === 'fees' && 'Perubahan tarif hanya berlaku untuk tagihan berikutnya.'}
+      </p>
+
+      {/* Modal Tambah/Edit */}
+      {modal && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <form onSubmit={handleSave} className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">
+                {modal.kind === 'fee' ? `Ubah Tarif ${modal.data.poli}` : `${modal.data.id ? 'Edit' : 'Tambah'} ${modal.kind === 'medicine' ? 'Obat' : 'Tindakan'}`}
+              </h2>
+              <button type="button" onClick={() => setModal(null)} className="p-1.5 text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
-          ))}
-          <p className="text-xs text-slate-500">Perubahan tarif hanya berlaku untuk tagihan berikutnya.</p>
+
+            {modal.kind !== 'fee' && (
+              <div>
+                <label className="text-xs text-slate-400">Nama</label>
+                <input required className={inputCls} value={modal.data.name} onChange={(e) => setModal({ ...modal, data: { ...modal.data, name: e.target.value } })} />
+              </div>
+            )}
+            {modal.kind === 'medicine' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-slate-400">Satuan</label>
+                  <input required className={inputCls} value={modal.data.unit} onChange={(e) => setModal({ ...modal, data: { ...modal.data, unit: e.target.value } })} />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400">Stok</label>
+                  <input required type="number" min="0" className={inputCls} value={modal.data.stock} onChange={(e) => setModal({ ...modal, data: { ...modal.data, stock: e.target.value } })} />
+                </div>
+              </div>
+            )}
+            <div>
+              <label className="text-xs text-slate-400">{modal.kind === 'fee' ? 'Tarif Konsultasi (Rp)' : modal.kind === 'medicine' ? 'Harga Satuan (Rp)' : 'Tarif (Rp)'}</label>
+              <input
+                required
+                type="number"
+                min="0"
+                className={inputCls}
+                value={modal.kind === 'fee' ? modal.data.fee : modal.data.price}
+                onChange={(e) => setModal({ ...modal, data: { ...modal.data, [modal.kind === 'fee' ? 'fee' : 'price']: e.target.value } })}
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button type="button" onClick={() => setModal(null)} className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold border border-slate-700">Batal</button>
+              <button disabled={saving} className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold disabled:opacity-50">{saving ? 'Menyimpan...' : 'Simpan'}</button>
+            </div>
+          </form>
         </div>
       )}
     </div>
   );
 }
-

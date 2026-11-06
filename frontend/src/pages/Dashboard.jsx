@@ -78,22 +78,6 @@ export default function Dashboard() {
     },
   ];
 
-  if (metrics.payment) {
-    statCards.push(
-      {
-        title: 'Pendapatan Hari Ini',
-        value: 'Rp ' + Number(metrics.payment.revenue_today).toLocaleString('id-ID'),
-        icon: Wallet,
-        color: 'from-emerald-500/20 to-lime-500/10 border-emerald-500/30 text-emerald-400',
-      },
-      {
-        title: 'Tagihan Belum Bayar',
-        value: metrics.payment.unpaid_count,
-        icon: Clock,
-        color: 'from-rose-500/20 to-orange-500/10 border-rose-500/30 text-rose-400',
-      }
-    );
-  }
 
   return (
     <div className="space-y-8">
@@ -155,6 +139,55 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Ringkasan Keuangan */}
+      {metrics.payment && (
+        <div>
+          <h2 className="text-lg font-bold text-slate-200 mb-4">Ringkasan Keuangan Hari Ini</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 relative overflow-hidden rounded-3xl p-8 border border-emerald-500/30 bg-gradient-to-br from-emerald-600/30 via-teal-900/40 to-slate-900">
+              <div className="absolute -right-10 -top-10 w-56 h-56 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="relative z-10 flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300/80">Total Pendapatan</p>
+                  <p className="mt-3 text-4xl sm:text-5xl font-black text-white tracking-tight">
+                    Rp {Number(metrics.payment.revenue_today).toLocaleString('id-ID')}
+                  </p>
+                  <p className="mt-2 text-xs text-slate-400">
+                    Dari {metrics.payment.paid_count} tagihan lunas hari ini (tidak termasuk tanggungan BPJS)
+                  </p>
+                </div>
+                <div className="p-3 rounded-2xl bg-emerald-500/20 border border-emerald-500/30">
+                  <Wallet className="w-7 h-7 text-emerald-300" />
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/payments')}
+                className="relative z-10 mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-200 text-xs font-semibold transition-all"
+              >
+                Buka Kasir <ArrowUpRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="rounded-3xl p-6 border border-amber-500/30 bg-gradient-to-br from-amber-500/15 to-slate-900 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-widest text-amber-300/80">Belum Dibayar</p>
+                <div className="p-2.5 rounded-xl bg-amber-500/20 border border-amber-500/30">
+                  <Clock className="w-5 h-5 text-amber-300" />
+                </div>
+              </div>
+              <div className="mt-4">
+                <p className="text-3xl font-black text-white">{metrics.payment.unpaid_count} <span className="text-base font-semibold text-slate-400">tagihan</span></p>
+                <p className="mt-1 text-sm text-amber-200">
+                  Rp {Number(metrics.payment.unpaid_amount).toLocaleString('id-ID')}
+                </p>
+              </div>
+              {metrics.payment.unpaid_count > 0 && (
+                <p className="mt-3 text-[11px] text-slate-400">Segera arahkan pasien ke kasir untuk pelunasan.</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {/* Quick Access Menu */}
       <div className="pt-4">
         <h2 className="text-lg font-bold text-slate-200 mb-4">Akses Cepat Modul</h2>

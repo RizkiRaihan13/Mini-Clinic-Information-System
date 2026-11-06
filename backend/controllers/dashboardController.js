@@ -38,7 +38,9 @@ const getDashboardMetrics = async (req, res) => {
       const payRes = await pool.query(
         `SELECT
            COALESCE(SUM(CASE WHEN i.status = 'Lunas' AND i.payment_method <> 'BPJS' THEN i.total_amount END), 0) AS revenue,
-           COUNT(*) FILTER (WHERE i.status = 'Belum Bayar') AS unpaid_count
+           COUNT(*) FILTER (WHERE i.status = 'Belum Bayar') AS unpaid_count,
+           COUNT(*) FILTER (WHERE i.status = 'Lunas') AS paid_count,
+           COALESCE(SUM(CASE WHEN i.status = 'Belum Bayar' THEN i.total_amount END), 0) AS unpaid_amount
          FROM invoices i JOIN registrations r ON r.id = i.registration_id
          WHERE r.visit_date = $1`,
         [todayStr]
@@ -46,6 +48,8 @@ const getDashboardMetrics = async (req, res) => {
       payment = {
         revenue_today: Number(payRes.rows[0].revenue),
         unpaid_count: Number(payRes.rows[0].unpaid_count),
+        paid_count: Number(payRes.rows[0].paid_count),
+        unpaid_amount: Number(payRes.rows[0].unpaid_amount),
       };
     }
 
