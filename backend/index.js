@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 require('dotenv').config();
@@ -40,15 +40,21 @@ app.use((err, req, res, next) => {
   sendError(res, 'Internal Server Error', { server: err.message }, 500);
 });
 
-// Scheduler: Dipanggil > 1 menit -> otomatis Dalam Pemeriksaan
-setInterval(() => {
-  autoAdvanceCalledQueues();
-}, 10000);
+// Di Vercel (serverless) tidak ada server yang hidup terus; auto-advance antrean
+// sudah juga dipanggil saat getQueues, jadi scheduler & listen hanya untuk lokal/server biasa.
+if (!process.env.VERCEL) {
+  // Scheduler: Dipanggil > 1 menit -> otomatis Dalam Pemeriksaan
+  setInterval(() => {
+    autoAdvanceCalledQueues();
+  }, 10000);
 
-app.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(` Mini Clinic System API Server running on port ${PORT}`);
-  console.log(` Health check: http://localhost:${PORT}/health`);
-  console.log(` API Base URL: http://localhost:${PORT}/api`);
-  console.log(`====================================================`);
-});
+  app.listen(PORT, () => {
+    console.log(`====================================================`);
+    console.log(` Mini Clinic System API Server running on port ${PORT}`);
+    console.log(` Health check: http://localhost:${PORT}/health`);
+    console.log(` API Base URL: http://localhost:${PORT}/api`);
+    console.log(`====================================================`);
+  });
+}
+
+module.exports = app;

@@ -6,7 +6,7 @@ const ssl = process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : unde
 // Mendukung DATABASE_URL (Neon/Supabase/Railway) atau variabel terpisah
 const pool = new Pool(
   process.env.DATABASE_URL
-    ? { connectionString: process.env.DATABASE_URL, ssl }
+    ? { connectionString: process.env.DATABASE_URL, ssl, max: 3 }
     : {
         host: process.env.DB_HOST || 'localhost',
         port: parseInt(process.env.DB_PORT || '5432'),
@@ -14,6 +14,7 @@ const pool = new Pool(
         password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME || 'mini_clinic_db',
         ssl,
+        max: 3,
       }
 );
 
@@ -22,3 +23,4 @@ pool.on('error', (err) => {
 });
 
 module.exports = pool;
+
