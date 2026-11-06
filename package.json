@@ -1,0 +1,21 @@
+{
+  "name": "mini-clinic-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Single-deploy Vercel demo: static React frontend + Express API (in-memory PGlite database)",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.2.17",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.5"
+  }
+}
+
