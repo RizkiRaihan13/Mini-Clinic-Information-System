@@ -213,7 +213,7 @@ export default function Registrations() {
                       value: patient.id,
                       label: `${patient.medical_record_number} - ${patient.name} (${patient.nik})`,
                     }))
-                    .find((patient) => patient.value === formData.patient_id)}
+                    .find((patient) => patient.value === formData.patient_id) || null}
                   onChange={(e) => {
                     setFormData({ ...formData, patient_id: e.value });
                   }}

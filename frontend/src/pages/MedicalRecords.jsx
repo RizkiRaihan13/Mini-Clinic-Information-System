@@ -256,6 +256,7 @@ export default function MedicalRecords() {
         ]);
 
         fetchActiveQueues();
+        fetchMasters();
       }
     } catch (err) {
       setErrorMsg(

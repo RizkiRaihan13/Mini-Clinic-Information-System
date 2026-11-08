@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import api from '../services/api';
 
 const AuthContext = createContext(null);
@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
       if (err.response) {
         errorMsg = err.response.data?.message || errorMsg;
       } else if (err.request) {
-        errorMsg = 'Gagal terhubung ke server backend. Pastikan server backend (npm run dev pada folder backend) sudah dinyalakan.';
+        errorMsg = 'Gagal memproses permintaan login.';
       }
       const errors = err.response?.data?.errors || {};
       return { success: false, message: errorMsg, errors };

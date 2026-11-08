@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { resetDemoDb } from '../services/api';
 import {
   LayoutDashboard,
   Users,
@@ -10,7 +11,7 @@ import {
   LogOut,
   Activity,
   User,
-  ShieldAlert,
+  RotateCcw,
   Wallet,
   Tags,
 } from 'lucide-react';
@@ -19,10 +20,17 @@ export default function Layout() {
   const { user, logout, hasRole } = useAuth();
   const navigate = useNavigate();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
+  };
+
+  const handleResetDemo = () => {
+    resetDemoDb();
+    setShowResetConfirm(false);
+    window.location.reload();
   };
 
   const navItems = [
@@ -145,9 +153,18 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowResetConfirm(true)}
+              title="Kembalikan data contoh ke kondisi awal"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800/80 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700 transition-all"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+              <span>Reset Demo</span>
+            </button>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 text-xs text-slate-300 border border-slate-700">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>PostgreSQL Ready</span>
+              <span>Local Storage Ready</span>
             </div>
           </div>
         </header>
@@ -182,6 +199,38 @@ export default function Layout() {
                 className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold"
               >
                 Ya, Keluar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showResetConfirm && (
+        <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-3xl p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
+                <RotateCcw className="w-5 h-5 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="font-bold text-white">Reset Data Demo?</h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Semua pasien, antrean, rekam medis, dan tagihan akan dikembalikan ke data awal.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowResetConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold border border-slate-700"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleResetDemo}
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold"
+              >
+                Ya, Reset
               </button>
             </div>
           </div>

@@ -1,21 +1,11 @@
 {
-  "name": "mini-clinic-demo",
+  "name": "mini-clinic-system",
   "version": "1.0.0",
   "private": true,
-  "description": "Single-deploy Vercel demo: static React frontend + Express API (in-memory PGlite database)",
+  "description": "Mini Clinic Information System - Database-free React + Vite SPA ready for Vercel static hosting",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build"
-  },
-  "dependencies": {
-    "@electric-sql/pglite": "^0.2.17",
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "express-validator": "^7.0.1",
-    "helmet": "^7.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.5"
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm install && npm run build",
+    "preview": "cd frontend && npm run preview"
   }
 }
-
